@@ -82,7 +82,7 @@ def generate_pdf(df, project_name, csv_file):
 
     # Save the uploaded CSV file to temporary storage
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-        temp_file.write(csv_file.getvalue())
+        temp_file.write(csv_file.read())
         temp_csv_path = temp_file.name
 
     desktop_path = os.path.join(os.path.expanduser('~'), 'Desktop')
@@ -124,22 +124,13 @@ def generate_pdf(df, project_name, csv_file):
     content = []
 
     for _, row in df.iterrows():
-        img_data = row['Image']
-        img = None
-
-        if img_data.startswith("http"):  # If the image is a URL, try to open it and read the bytes.
-            try:
-                with pil_image.open(img_data) as img_pil:
-                    img_buffer = io.BytesIO()
-                    img_pil.save(img_buffer, format="JPEG")
-                    img_data = img_buffer.getvalue()
-            except Exception as e:
-                st.warning(f"Failed to load image from URL: {e}")
-                img_data = None
-
-        if img_data is not None:
-            img = Image(io.BytesIO(img_data), width=60, height=60)
-
+        img_data = None
+        if row["Image"].startswith("http"):
+            img_data = get_image_from_url(row["Image"])
+        else:
+            img_data = get_image_from_file(temp_csv_path, row["Image"])
+        
+        img = Image(io.BytesIO(img_data), width=60, height=60) if img_data else None
         row_data = [
             Paragraph(str(row["Clash ID"]), cell_style),
             Paragraph(str(row["View Name"]), cell_style),
@@ -152,7 +143,7 @@ def generate_pdf(df, project_name, csv_file):
             Paragraph(str(row["Description"]), cell_style),
             Paragraph(str(row["Discipline"]), cell_style),
             Paragraph(str(row["Assign to"]), cell_style),
-            img if img is not None else "",
+            img if img else "",
         ]
         content.append(row_data)
 
@@ -161,6 +152,25 @@ def generate_pdf(df, project_name, csv_file):
     table = Table(data, repeatRows=1, style=table_style)
     elems = [Spacer(1, 0.5*inch), table]
     pdf.build(elems)
+
+def get_image_from_url(url):
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.content
+    except Exception as e:
+        st.warning(f"Unable to retrieve image from URL: {url}")
+        return None
+
+def get_image_from_file(csv_file_path, image_path):
+    try:
+        csv_folder = os.path.dirname(csv_file_path)
+        image_full_path = os.path.join(csv_folder, image_path)
+        with open(image_full_path, 'rb') as f:
+            return f.read()
+    except Exception as e:
+        st.warning(f"Unable to read image file: {image_path}")
+        return None
 
 if __name__ == "__main__":
     main()
