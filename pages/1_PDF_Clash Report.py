@@ -11,6 +11,7 @@ from reportlab.lib.units import inch
 import time
 from PIL import Image as pil_image
 import os
+import io
 import tempfile
 
 st.set_page_config(page_title='Generate PDF Report', page_icon=":atom_symbol:", layout='wide')
@@ -124,11 +125,16 @@ def generate_pdf(df, project_name, csv_file):
 
     for _, row in df.iterrows():
         try:
-            # Get the path to the image from the Streamlit temp directory
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_img_file:
-                temp_img_file.write(row['Image'].read())
-                temp_img_path = temp_img_file.name
-            img = Image(temp_img_path, width=60, height=60)
+            # Get the image data from the DataFrame
+            img_data = row['Image']
+
+            # Use PIL to open the image and convert it to bytes
+            with pil_image.open(io.BytesIO(img_data)) as img_pil:
+                img_byte_arr = io.BytesIO()
+                img_pil.save(img_byte_arr, format='PNG')
+                img_byte_arr = img_byte_arr.getvalue()
+
+            img = Image(io.BytesIO(img_byte_arr), width=60, height=60)
         except FileNotFoundError:
             img = 'Image not found'
         row_data = [
