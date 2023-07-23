@@ -141,8 +141,9 @@ def generate_pdf(df, logo_path, project_name, output_file):
     elems = [Spacer(1, 0.5*inch), table]
     pdf.build(elems)
 
-def get_image_from_file(img_url):
-    img_data = requests.get(img_url).content
+def get_image_from_file(img_path):
+    with open(img_path, 'rb') as f:
+        img_data = f.read()
     return BytesIO(img_data)
 
 if __name__ == "__main__":
