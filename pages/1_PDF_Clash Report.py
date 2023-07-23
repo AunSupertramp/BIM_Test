@@ -9,7 +9,10 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.units import inch
 import time
+from PIL import Image as pil_image
+import os
 
+st.set_page_config(page_title='Generate PDF Report', page_icon=":atom_symbol:", layout='wide')
 pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
 pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
 
@@ -17,7 +20,7 @@ def main():
     st.title('Clash Report Generator')
     project_name = st.text_input("Enter Project Name:")
     csv_file = st.file_uploader("Upload CSV", type=['csv'])
-    
+
     if csv_file is not None:
         df = pd.read_csv(csv_file, encoding='utf-8-sig')
         df = df.dropna()
@@ -34,18 +37,18 @@ def main():
             "Description": "Description",
             "Discipline": "Discipline",
             "Assign to": "Assign to",
+            "ImagePath": "Image"
         })
 
         df["Date Found"] = pd.to_datetime(df["Date Found"]).dt.strftime("%m/%d/%Y")
-        st.table(df.head(10))
+        st.table(df.head(3))
 
         if st.button("Generate Report"):
-            desktop_path = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
-            output_file = os.path.join(desktop_path, f"{time.strftime('%Y%m%d')}_ClashReport_{project_name}.pdf")
-            logo_path = r"./Media/1-Aurecon-logo-colour-RGB-Positive.png"
-            generate_pdf(df, logo_path, project_name, output_file)
+            output_file = generate_pdf(df, project_name)
 
-def generate_pdf(df, logo_path, project_name, output_file):
+            st.success(f"PDF report generated. You can download it from [here]({output_file}).")
+
+def generate_pdf(df, project_name):
     class MyDocTemplate(BaseDocTemplate):
         def __init__(self, filename, **kwargs):
             BaseDocTemplate.__init__(self, filename, **kwargs)
@@ -57,14 +60,28 @@ def generate_pdf(df, logo_path, project_name, output_file):
             self.addPageTemplates([template])
 
         def add_page_decorations(self, canvas, doc):
-            canvas.drawImage(logo_path, 0.2*inch, doc.height + 1.5*inch, width=2*inch, height=1*inch)
+            with pil_image.open(logo_path) as img:
+                width, height = img.size
+            aspect = width / height
+            new_height = 0.25 * inch
+            new_width = new_height * aspect
+
+            canvas.drawImage(logo_path, 0.2*inch, doc.height + 1.5*inch, width=new_width, height=new_height)
 
             canvas.setFont("Sarabun-Bold", 30)
-            canvas.drawCentredString(doc.width/2, doc.height + 1.2*inch, project_name)
+            canvas.drawCentredString(doc.width/2 + 0.5*inch, doc.height + 1.2*inch + 0.25*inch, project_name)
 
             timestamp = time.strftime("%Y/%m/%d %H:%M:%S")
             canvas.setFont("Sarabun-Bold", 10)
-            canvas.drawRightString(doc.width - 0.2*inch, doc.height + 0.75*inch, f"Generated on: {timestamp}")
+            canvas.drawRightString(doc.width + inch, doc.height + inch + 0.75*inch, f"Generated on: {timestamp}")
+
+    pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
+    pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
+
+    logo_path = r"./Media/1-Aurecon-logo-colour-RGB-Positive.png"
+
+    desktop_path = os.path.join(os.path.expanduser('~'), 'Desktop')
+    output_file = os.path.join(desktop_path, f"{time.strftime('%Y%m%d')}_ClashReport_{project_name}.pdf")
 
     pdf = MyDocTemplate(output_file, pagesize=landscape(A3))
 
@@ -102,6 +119,10 @@ def generate_pdf(df, logo_path, project_name, output_file):
     content = []
 
     for _, row in df.iterrows():
+        try:
+            img = Image(row['Image'], width=60, height=60)
+        except FileNotFoundError:
+            img = 'Image not found'
         row_data = [
             Paragraph(str(row["Clash ID"]), cell_style),
             Paragraph(str(row["View Name"]), cell_style),
@@ -114,6 +135,7 @@ def generate_pdf(df, logo_path, project_name, output_file):
             Paragraph(str(row["Description"]), cell_style),
             Paragraph(str(row["Discipline"]), cell_style),
             Paragraph(str(row["Assign to"]), cell_style),
+            img
         ]
         content.append(row_data)
 
@@ -122,6 +144,8 @@ def generate_pdf(df, logo_path, project_name, output_file):
     table = Table(data, repeatRows=1, style=table_style)
     elems = [Spacer(1, 0.5*inch), table]
     pdf.build(elems)
+
+    return output_file
 
 if __name__ == "__main__":
     main()
