@@ -11,6 +11,7 @@ from reportlab.lib.units import inch
 import time
 from PIL import Image as pil_image
 import os
+import tempfile
 
 st.set_page_config(page_title='Generate PDF Report', page_icon=":atom_symbol:", layout='wide')
 pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
@@ -79,9 +80,9 @@ def generate_pdf(df, project_name, csv_file):
     logo_path = r"./Media/1-Aurecon-logo-colour-RGB-Positive.png"
 
     # Save the uploaded CSV file to temporary storage
-    uploaded_csv_path = os.path.join(st.config.get_option("server.folder"), csv_file.name)
-    with open(uploaded_csv_path, 'wb') as f:
-        f.write(csv_file.getvalue())
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        temp_file.write(csv_file.getvalue())
+        temp_csv_path = temp_file.name
 
     desktop_path = os.path.join(os.path.expanduser('~'), 'Desktop')
     output_file = os.path.join(desktop_path, f"{time.strftime('%Y%m%d')}_ClashReport_{project_name}.pdf")
@@ -123,9 +124,11 @@ def generate_pdf(df, project_name, csv_file):
 
     for _, row in df.iterrows():
         try:
-            # Get the path to the image from temporary storage
-            image_filename = os.path.join(st.config.get_option("server.folder"), row['Image'])
-            img = Image(image_filename, width=60, height=60)
+            # Get the path to the image from the Streamlit temp directory
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_img_file:
+                temp_img_file.write(row['Image'].read())
+                temp_img_path = temp_img_file.name
+            img = Image(temp_img_path, width=60, height=60)
         except FileNotFoundError:
             img = 'Image not found'
         row_data = [
