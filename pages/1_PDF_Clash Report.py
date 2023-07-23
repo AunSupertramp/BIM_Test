@@ -13,6 +13,7 @@ from PIL import Image as pil_image
 import os
 import requests
 from io import BytesIO
+import tempfile
 
 pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
 pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
@@ -45,8 +46,7 @@ def main():
         st.table(df.head(10))
 
         if st.button("Generate Report"):
-            desktop_path = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
-            output_file = os.path.join(desktop_path, f"{time.strftime('%Y%m%d')}_ClashReport_{project_name}.pdf")
+            output_file = tempfile.NamedTemporaryFile(delete=False).name
             logo_path = r"./Media/1-Aurecon-logo-colour-RGB-Positive.png"
             generate_pdf(df, logo_path, project_name, output_file)
 
