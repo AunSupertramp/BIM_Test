@@ -9,12 +9,11 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.units import inch
 import time
-import os
-import io
-import requests
 from PIL import Image as pil_image
+import os
+import requests
+from io import BytesIO
 
-st.set_page_config(page_title='Generate PDF Report', page_icon=":atom_symbol:", layout='wide')
 pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
 pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
 
@@ -22,7 +21,7 @@ def main():
     st.title('Clash Report Generator')
     project_name = st.text_input("Enter Project Name:")
     csv_file = st.file_uploader("Upload CSV", type=['csv'])
-
+    
     if csv_file is not None:
         df = pd.read_csv(csv_file, encoding='utf-8-sig')
         df = df.dropna()
@@ -43,12 +42,15 @@ def main():
         })
 
         df["Date Found"] = pd.to_datetime(df["Date Found"]).dt.strftime("%m/%d/%Y")
-        st.table(df.head(3))
+        st.table(df.head(10))
 
         if st.button("Generate Report"):
-            generate_pdf(df, project_name, csv_file)
+            desktop_path = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
+            output_file = os.path.join(desktop_path, f"{time.strftime('%Y%m%d')}_ClashReport_{project_name}.pdf")
+            logo_path = r"./Media/1-Aurecon-logo-colour-RGB-Positive.png"
+            generate_pdf(df, logo_path, project_name, output_file)
 
-def generate_pdf(df, project_name, csv_file):
+def generate_pdf(df, logo_path, project_name, output_file):
     class MyDocTemplate(BaseDocTemplate):
         def __init__(self, filename, **kwargs):
             BaseDocTemplate.__init__(self, filename, **kwargs)
@@ -75,14 +77,7 @@ def generate_pdf(df, project_name, csv_file):
             canvas.setFont("Sarabun-Bold", 10)
             canvas.drawRightString(doc.width + inch, doc.height + inch + 0.75*inch, f"Generated on: {timestamp}")
 
-    pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
-    pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
-
-    logo_path = r"./Media/1-Aurecon-logo-colour-RGB-Positive.png"
-
-    pdf_buffer = io.BytesIO()
-
-    pdf = MyDocTemplate(pdf_buffer, pagesize=landscape(A3))
+    pdf = MyDocTemplate(output_file, pagesize=landscape(A3))
 
     styles = getSampleStyleSheet()
     cell_style = styles["Normal"]
@@ -118,13 +113,8 @@ def generate_pdf(df, project_name, csv_file):
     content = []
 
     for _, row in df.iterrows():
-        img_data = None
-        if row["Image"].startswith("http"):
-            img_data = get_image_from_url(row["Image"])
-        else:
-            img_data = get_image_from_file(csv_file.name, row["Image"])
-
-        img = Image(io.BytesIO(img_data), width=60, height=60) if img_data else None
+        img_data = get_image_from_file(row["Image"])
+        img = Image(BytesIO(img_data), width=60, height=60)
         row_data = [
             Paragraph(str(row["Clash ID"]), cell_style),
             Paragraph(str(row["View Name"]), cell_style),
@@ -137,7 +127,7 @@ def generate_pdf(df, project_name, csv_file):
             Paragraph(str(row["Description"]), cell_style),
             Paragraph(str(row["Discipline"]), cell_style),
             Paragraph(str(row["Assign to"]), cell_style),
-            img if img else "",
+            img
         ]
         content.append(row_data)
 
@@ -147,27 +137,16 @@ def generate_pdf(df, project_name, csv_file):
     elems = [Spacer(1, 0.5*inch), table]
     pdf.build(elems)
 
-    pdf_bytes = pdf_buffer.getvalue()
-    st.download_button("Download PDF", data=pdf_bytes, file_name=f"{time.strftime('%Y%m%d')}_ClashReport_{project_name}.pdf", mime="application/pdf")
-
-def get_image_from_url(url):
+def get_image_from_file(img_path):
     try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            return response.content
-    except Exception as e:
-        st.warning(f"Unable to retrieve image from URL: {url}")
-        return None
-
-def get_image_from_file(csv_file_path, image_path):
-    try:
-        csv_folder = os.path.dirname(csv_file_path)
-        image_full_path = os.path.join(csv_folder, image_path)
-        with open(image_full_path, 'rb') as f:
+        # If it's a URL, download the image and return the content
+        response = requests.get(img_path)
+        response.raise_for_status()
+        return response.content
+    except requests.exceptions.RequestException:
+        # If it's a local file, open and read the image, then return the content
+        with open(img_path, 'rb') as f:
             return f.read()
-    except Exception as e:
-        st.warning(f"Unable to read image file: {image_path}")
-        return None
 
 if __name__ == "__main__":
     main()
