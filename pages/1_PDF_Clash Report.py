@@ -11,7 +11,7 @@ from reportlab.lib.units import inch
 import time
 import os
 import io
-import tempfile
+import requests
 from PIL import Image as pil_image
 
 st.set_page_config(page_title='Generate PDF Report', page_icon=":atom_symbol:", layout='wide')
@@ -80,15 +80,9 @@ def generate_pdf(df, project_name, csv_file):
 
     logo_path = r"./Media/1-Aurecon-logo-colour-RGB-Positive.png"
 
-    # Save the uploaded CSV file to temporary storage
-    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-        temp_file.write(csv_file.read())
-        temp_csv_path = temp_file.name
+    pdf_buffer = io.BytesIO()
 
-    desktop_path = os.path.join(os.path.expanduser('~'), 'Desktop')
-    output_file = os.path.join(desktop_path, f"{time.strftime('%Y%m%d')}_ClashReport_{project_name}.pdf")
-
-    pdf = MyDocTemplate(output_file, pagesize=landscape(A3))
+    pdf = MyDocTemplate(pdf_buffer, pagesize=landscape(A3))
 
     styles = getSampleStyleSheet()
     cell_style = styles["Normal"]
@@ -128,8 +122,8 @@ def generate_pdf(df, project_name, csv_file):
         if row["Image"].startswith("http"):
             img_data = get_image_from_url(row["Image"])
         else:
-            img_data = get_image_from_file(temp_csv_path, row["Image"])
-        
+            img_data = get_image_from_file(csv_file.name, row["Image"])
+
         img = Image(io.BytesIO(img_data), width=60, height=60) if img_data else None
         row_data = [
             Paragraph(str(row["Clash ID"]), cell_style),
@@ -152,6 +146,9 @@ def generate_pdf(df, project_name, csv_file):
     table = Table(data, repeatRows=1, style=table_style)
     elems = [Spacer(1, 0.5*inch), table]
     pdf.build(elems)
+
+    pdf_bytes = pdf_buffer.getvalue()
+    st.download_button("Download PDF", data=pdf_bytes, file_name=f"{time.strftime('%Y%m%d')}_ClashReport_{project_name}.pdf", mime="application/pdf")
 
 def get_image_from_url(url):
     try:
