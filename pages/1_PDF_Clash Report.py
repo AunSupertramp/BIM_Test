@@ -9,13 +9,9 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.units import inch
 import time
-from PIL import Image as pil_image
-import os
-import requests
-from io import BytesIO
 
-pdfmetrics.registerFont(TTFont('Sarabun', './Font/THSarabunNew.ttf'))
-pdfmetrics.registerFont(TTFont('Sarabun-Bold', './Font/THSarabunNew Bold.ttf'))
+pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
+pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
 
 def main():
     st.title('Clash Report Generator')
@@ -38,15 +34,15 @@ def main():
             "Description": "Description",
             "Discipline": "Discipline",
             "Assign to": "Assign to",
-            "ImagePath": "Image"
         })
 
         df["Date Found"] = pd.to_datetime(df["Date Found"]).dt.strftime("%m/%d/%Y")
         st.table(df.head(10))
 
         if st.button("Generate Report"):
-            output_file = f"{time.strftime('%Y%m%d')}_ClashReport_{project_name}.pdf"
-            logo_path = "https://example.com/your-logo-image.png"  # Replace with your logo URL
+            desktop_path = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
+            output_file = os.path.join(desktop_path, f"{time.strftime('%Y%m%d')}_ClashReport_{project_name}.pdf")
+            logo_path = r"./Media/1-Aurecon-logo-colour-RGB-Positive.png"
             generate_pdf(df, logo_path, project_name, output_file)
 
 def generate_pdf(df, logo_path, project_name, output_file):
@@ -61,22 +57,14 @@ def generate_pdf(df, logo_path, project_name, output_file):
             self.addPageTemplates([template])
 
         def add_page_decorations(self, canvas, doc):
-            img_data = requests.get(logo_path).content
-            img_stream = BytesIO(img_data)
-            with pil_image.open(img_stream) as img:
-                width, height = img.size
-            aspect = width / height
-            new_height = 0.25 * inch
-            new_width = new_height * aspect
-
-            canvas.drawImage(img_stream, 0.2*inch, doc.height + 1.5*inch, width=new_width, height=new_height)
+            canvas.drawImage(logo_path, 0.2*inch, doc.height + 1.5*inch, width=2*inch, height=1*inch)
 
             canvas.setFont("Sarabun-Bold", 30)
-            canvas.drawCentredString(doc.width/2 + 0.5*inch, doc.height + 1.2*inch + 0.25*inch, project_name)
+            canvas.drawCentredString(doc.width/2, doc.height + 1.2*inch, project_name)
 
             timestamp = time.strftime("%Y/%m/%d %H:%M:%S")
             canvas.setFont("Sarabun-Bold", 10)
-            canvas.drawRightString(doc.width + inch, doc.height + inch + 0.75*inch, f"Generated on: {timestamp}")
+            canvas.drawRightString(doc.width - 0.2*inch, doc.height + 0.75*inch, f"Generated on: {timestamp}")
 
     pdf = MyDocTemplate(output_file, pagesize=landscape(A3))
 
@@ -114,11 +102,6 @@ def generate_pdf(df, logo_path, project_name, output_file):
     content = []
 
     for _, row in df.iterrows():
-        img_data = get_image_from_file(row["Image"])
-        try:
-            img = Image(img_data, width=60, height=60)
-        except FileNotFoundError:
-            img = 'Image not found'
         row_data = [
             Paragraph(str(row["Clash ID"]), cell_style),
             Paragraph(str(row["View Name"]), cell_style),
@@ -131,7 +114,6 @@ def generate_pdf(df, logo_path, project_name, output_file):
             Paragraph(str(row["Description"]), cell_style),
             Paragraph(str(row["Discipline"]), cell_style),
             Paragraph(str(row["Assign to"]), cell_style),
-            img
         ]
         content.append(row_data)
 
@@ -140,11 +122,6 @@ def generate_pdf(df, logo_path, project_name, output_file):
     table = Table(data, repeatRows=1, style=table_style)
     elems = [Spacer(1, 0.5*inch), table]
     pdf.build(elems)
-
-def get_image_from_file(img_path):
-    with open(img_path, 'rb') as f:
-        img_data = f.read()
-    return BytesIO(img_data)
 
 if __name__ == "__main__":
     main()
