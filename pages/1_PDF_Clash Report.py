@@ -78,7 +78,9 @@ def generate_pdf(df, project_name, csv_file):
 
     logo_path = r"./Media/1-Aurecon-logo-colour-RGB-Positive.png"
 
-    with open(csv_file.name, 'wb') as f:
+    # Save the uploaded CSV file to temporary storage
+    uploaded_csv_path = os.path.join(st.config.get_option("server.folder"), csv_file.name)
+    with open(uploaded_csv_path, 'wb') as f:
         f.write(csv_file.getvalue())
 
     desktop_path = os.path.join(os.path.expanduser('~'), 'Desktop')
@@ -121,7 +123,9 @@ def generate_pdf(df, project_name, csv_file):
 
     for _, row in df.iterrows():
         try:
-            img = Image(row['Image'], width=60, height=60)
+            # Get the path to the image from temporary storage
+            image_filename = os.path.join(st.config.get_option("server.folder"), row['Image'])
+            img = Image(image_filename, width=60, height=60)
         except FileNotFoundError:
             img = 'Image not found'
         row_data = [
