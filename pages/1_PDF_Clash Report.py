@@ -44,11 +44,9 @@ def main():
         st.table(df.head(3))
 
         if st.button("Generate Report"):
-            output_file = generate_pdf(df, project_name)
+            generate_pdf(df, project_name, csv_file)
 
-            st.success(f"PDF report generated. You can download it from [here]({output_file}).")
-
-def generate_pdf(df, project_name):
+def generate_pdf(df, project_name, csv_file):
     class MyDocTemplate(BaseDocTemplate):
         def __init__(self, filename, **kwargs):
             BaseDocTemplate.__init__(self, filename, **kwargs)
@@ -79,6 +77,9 @@ def generate_pdf(df, project_name):
     pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
 
     logo_path = r"./Media/1-Aurecon-logo-colour-RGB-Positive.png"
+
+    with open(csv_file.name, 'wb') as f:
+        f.write(csv_file.getvalue())
 
     desktop_path = os.path.join(os.path.expanduser('~'), 'Desktop')
     output_file = os.path.join(desktop_path, f"{time.strftime('%Y%m%d')}_ClashReport_{project_name}.pdf")
@@ -144,8 +145,6 @@ def generate_pdf(df, project_name):
     table = Table(data, repeatRows=1, style=table_style)
     elems = [Spacer(1, 0.5*inch), table]
     pdf.build(elems)
-
-    return output_file
 
 if __name__ == "__main__":
     main()
