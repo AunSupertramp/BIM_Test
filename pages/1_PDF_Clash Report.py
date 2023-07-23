@@ -13,7 +13,6 @@ from PIL import Image as pil_image
 import os
 import requests
 from io import BytesIO
-import tempfile
 
 pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
 pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
@@ -46,9 +45,24 @@ def main():
         st.table(df.head(10))
 
         if st.button("Generate Report"):
-            output_file = tempfile.NamedTemporaryFile(delete=False).name
+            desktop_path = os.path.join(os.path.join(os.environ.get('USERPROFILE', os.environ.get('HOME'))), 'Desktop')
+            output_file = os.path.join(desktop_path, f"{time.strftime('%Y%m%d')}_ClashReport_{project_name}.pdf")
             logo_path = r"./Media/1-Aurecon-logo-colour-RGB-Positive.png"
             generate_pdf(df, logo_path, project_name, output_file)
+
+def get_image_from_file(img_path):
+    try:
+        # If it's a URL, download the image and return the content
+        response = requests.get(img_path)
+        response.raise_for_status()
+        return response.content
+    except requests.exceptions.RequestException:
+        # If it's a local file, open and read the image, then return the content
+        with open(img_path, 'rb') as f:
+            return f.read()
+
+    # If the image path is invalid (neither URL nor local file), return None
+    return None
 
 def generate_pdf(df, logo_path, project_name, output_file):
     class MyDocTemplate(BaseDocTemplate):
@@ -114,7 +128,7 @@ def generate_pdf(df, logo_path, project_name, output_file):
 
     for _, row in df.iterrows():
         img_data = get_image_from_file(row["Image"])
-        img = Image(BytesIO(img_data), width=60, height=60)
+        img = Image(BytesIO(img_data), width=60, height=60) if img_data else "Image not found"
         row_data = [
             Paragraph(str(row["Clash ID"]), cell_style),
             Paragraph(str(row["View Name"]), cell_style),
@@ -136,17 +150,6 @@ def generate_pdf(df, logo_path, project_name, output_file):
     table = Table(data, repeatRows=1, style=table_style)
     elems = [Spacer(1, 0.5*inch), table]
     pdf.build(elems)
-
-def get_image_from_file(img_path):
-    try:
-        # If it's a URL, download the image and return the content
-        response = requests.get(img_path)
-        response.raise_for_status()
-        return response.content
-    except requests.exceptions.RequestException:
-        # If it's a local file, open and read the image, then return the content
-        with open(img_path, 'rb') as f:
-            return f.read()
 
 if __name__ == "__main__":
     main()
