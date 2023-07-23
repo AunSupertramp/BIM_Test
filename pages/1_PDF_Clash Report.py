@@ -9,10 +9,10 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.units import inch
 import time
-from PIL import Image as pil_image
 import os
 import io
 import tempfile
+from PIL import Image as pil_image
 
 st.set_page_config(page_title='Generate PDF Report', page_icon=":atom_symbol:", layout='wide')
 pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
@@ -124,19 +124,22 @@ def generate_pdf(df, project_name, csv_file):
     content = []
 
     for _, row in df.iterrows():
-        try:
-            # Get the image data from the DataFrame
-            img_data = row['Image']
+        img_data = row['Image']
+        img = None
 
-            # Use PIL to open the image and convert it to bytes
-            with pil_image.open(io.BytesIO(img_data)) as img_pil:
-                img_byte_arr = io.BytesIO()
-                img_pil.save(img_byte_arr, format='PNG')
-                img_byte_arr = img_byte_arr.getvalue()
+        if img_data.startswith("http"):  # If the image is a URL, try to open it and read the bytes.
+            try:
+                with pil_image.open(img_data) as img_pil:
+                    img_buffer = io.BytesIO()
+                    img_pil.save(img_buffer, format="JPEG")
+                    img_data = img_buffer.getvalue()
+            except Exception as e:
+                st.warning(f"Failed to load image from URL: {e}")
+                img_data = None
 
-            img = Image(io.BytesIO(img_byte_arr), width=60, height=60)
-        except FileNotFoundError:
-            img = 'Image not found'
+        if img_data is not None:
+            img = Image(io.BytesIO(img_data), width=60, height=60)
+
         row_data = [
             Paragraph(str(row["Clash ID"]), cell_style),
             Paragraph(str(row["View Name"]), cell_style),
@@ -149,7 +152,7 @@ def generate_pdf(df, project_name, csv_file):
             Paragraph(str(row["Description"]), cell_style),
             Paragraph(str(row["Discipline"]), cell_style),
             Paragraph(str(row["Assign to"]), cell_style),
-            img
+            img if img is not None else "",
         ]
         content.append(row_data)
 
