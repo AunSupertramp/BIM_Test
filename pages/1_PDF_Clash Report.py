@@ -11,7 +11,8 @@ from reportlab.lib.units import inch
 import time
 from PIL import Image as pil_image
 import os
-st.set_page_config(page_title='Generate PDF Report',page_icon=":atom_symbol:",layout='wide')
+
+st.set_page_config(page_title='Generate PDF Report', page_icon=":atom_symbol:", layout='wide')
 pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
 pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
 
@@ -19,7 +20,7 @@ def main():
     st.title('Clash Report Generator')
     project_name = st.text_input("Enter Project Name:")
     csv_file = st.file_uploader("Upload CSV", type=['csv'])
-    
+
     if csv_file is not None:
         df = pd.read_csv(csv_file, encoding='utf-8-sig')
         df = df.dropna()
@@ -43,12 +44,11 @@ def main():
         st.table(df.head(3))
 
         if st.button("Generate Report"):
-            desktop_path = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
-            output_file = os.path.join(desktop_path, f"{time.strftime('%Y%m%d')}_ClashReport_{project_name}.pdf")
-            logo_path = r"./Media/1-Aurecon-logo-colour-RGB-Positive.png"
-            generate_pdf(df, logo_path, project_name, output_file)
+            output_file = generate_pdf(df, project_name)
 
-def generate_pdf(df, logo_path, project_name, output_file):
+            st.success(f"PDF report generated. You can download it from [here]({output_file}).")
+
+def generate_pdf(df, project_name):
     class MyDocTemplate(BaseDocTemplate):
         def __init__(self, filename, **kwargs):
             BaseDocTemplate.__init__(self, filename, **kwargs)
@@ -74,6 +74,14 @@ def generate_pdf(df, logo_path, project_name, output_file):
             timestamp = time.strftime("%Y/%m/%d %H:%M:%S")
             canvas.setFont("Sarabun-Bold", 10)
             canvas.drawRightString(doc.width + inch, doc.height + inch + 0.75*inch, f"Generated on: {timestamp}")
+
+    pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
+    pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
+
+    logo_path = r"./Media/1-Aurecon-logo-colour-RGB-Positive.png"
+
+    desktop_path = os.path.join(os.path.expanduser('~'), 'Desktop')
+    output_file = os.path.join(desktop_path, f"{time.strftime('%Y%m%d')}_ClashReport_{project_name}.pdf")
 
     pdf = MyDocTemplate(output_file, pagesize=landscape(A3))
 
@@ -136,6 +144,8 @@ def generate_pdf(df, logo_path, project_name, output_file):
     table = Table(data, repeatRows=1, style=table_style)
     elems = [Spacer(1, 0.5*inch), table]
     pdf.build(elems)
+
+    return output_file
 
 if __name__ == "__main__":
     main()
