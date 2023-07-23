@@ -14,8 +14,8 @@ import os
 import requests
 from io import BytesIO
 
-pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
-pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
+pdfmetrics.registerFont(TTFont('Sarabun', './Font/THSarabunNew.ttf'))
+pdfmetrics.registerFont(TTFont('Sarabun-Bold', './Font/THSarabunNew Bold.ttf'))
 
 def main():
     st.title('Clash Report Generator')
@@ -45,24 +45,9 @@ def main():
         st.table(df.head(10))
 
         if st.button("Generate Report"):
-            desktop_path = os.path.join(os.path.join(os.environ.get('USERPROFILE', os.environ.get('HOME'))), 'Desktop')
-            output_file = os.path.join(desktop_path, f"{time.strftime('%Y%m%d')}_ClashReport_{project_name}.pdf")
-            logo_path = r"./Media/1-Aurecon-logo-colour-RGB-Positive.png"
+            output_file = f"{time.strftime('%Y%m%d')}_ClashReport_{project_name}.pdf"
+            logo_path = "https://example.com/your-logo-image.png"  # Replace with your logo URL
             generate_pdf(df, logo_path, project_name, output_file)
-
-def get_image_from_file(img_path):
-    try:
-        # If it's a URL, download the image and return the content
-        response = requests.get(img_path)
-        response.raise_for_status()
-        return response.content
-    except requests.exceptions.RequestException:
-        # If it's a local file, open and read the image, then return the content
-        with open(img_path, 'rb') as f:
-            return f.read()
-
-    # If the image path is invalid (neither URL nor local file), return None
-    return None
 
 def generate_pdf(df, logo_path, project_name, output_file):
     class MyDocTemplate(BaseDocTemplate):
@@ -76,13 +61,15 @@ def generate_pdf(df, logo_path, project_name, output_file):
             self.addPageTemplates([template])
 
         def add_page_decorations(self, canvas, doc):
-            with pil_image.open(logo_path) as img:
+            img_data = requests.get(logo_path).content
+            img_stream = BytesIO(img_data)
+            with pil_image.open(img_stream) as img:
                 width, height = img.size
             aspect = width / height
             new_height = 0.25 * inch
             new_width = new_height * aspect
 
-            canvas.drawImage(logo_path, 0.2*inch, doc.height + 1.5*inch, width=new_width, height=new_height)
+            canvas.drawImage(img_stream, 0.2*inch, doc.height + 1.5*inch, width=new_width, height=new_height)
 
             canvas.setFont("Sarabun-Bold", 30)
             canvas.drawCentredString(doc.width/2 + 0.5*inch, doc.height + 1.2*inch + 0.25*inch, project_name)
@@ -128,7 +115,10 @@ def generate_pdf(df, logo_path, project_name, output_file):
 
     for _, row in df.iterrows():
         img_data = get_image_from_file(row["Image"])
-        img = Image(BytesIO(img_data), width=60, height=60) if img_data else "Image not found"
+        try:
+            img = Image(img_data, width=60, height=60)
+        except FileNotFoundError:
+            img = 'Image not found'
         row_data = [
             Paragraph(str(row["Clash ID"]), cell_style),
             Paragraph(str(row["View Name"]), cell_style),
@@ -150,6 +140,10 @@ def generate_pdf(df, logo_path, project_name, output_file):
     table = Table(data, repeatRows=1, style=table_style)
     elems = [Spacer(1, 0.5*inch), table]
     pdf.build(elems)
+
+def get_image_from_file(img_url):
+    img_data = requests.get(img_url).content
+    return BytesIO(img_data)
 
 if __name__ == "__main__":
     main()
