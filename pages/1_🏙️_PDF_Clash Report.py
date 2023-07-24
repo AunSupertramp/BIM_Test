@@ -13,6 +13,10 @@ from PIL import Image as pil_image
 import os
 
 st.set_page_config(page_title='Generate PDF Report', page_icon=":atom_symbol:", layout='centered')
+css_file="styles/main.css"
+with open(css_file) as f:
+    st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
+
 pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
 pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
 
