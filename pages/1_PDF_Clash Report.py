@@ -12,7 +12,7 @@ import time
 from PIL import Image as pil_image
 import os
 
-st.set_page_config(page_title='Generate PDF Report', page_icon=":atom_symbol:", layout='wide')
+st.set_page_config(page_title='Generate PDF Report', page_icon=":atom_symbol:", layout='centered')
 pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
 pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
 
