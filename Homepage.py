@@ -27,7 +27,6 @@ def main():
 	### Contact
 
 	- [Facebook](https://www.facebook.com/siwawut.pattanasri/)
-	- [Aurecongroup](https://www.aurecongroup.com/.)
 	- Line ID: atomsiwawut
 	- 📧: Siwawut.Pattanasri@aurecongroup.com
 	- ☎️: 0828952663
