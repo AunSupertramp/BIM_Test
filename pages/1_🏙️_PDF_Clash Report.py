@@ -98,7 +98,7 @@ def generate_pdf(df, project_name):
         "HeaderStyle",
         parent=styles["Normal"],
         fontName="Sarabun-Bold",
-        fontSize=14,
+        fontSize=18,
         textColor=colors.white,
         alignment=TA_LEFT,
         spaceAfter=12,
@@ -113,22 +113,27 @@ def generate_pdf(df, project_name):
         ('BACKGROUND', (0, 1), (-1, -1), colors.white),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('FONTNAME', (0, 0), (-1, -1), 'Sarabun'),
-        ('FONTSIZE', (0, 0), (-1, 0), 14),
+        ('FONTSIZE', (0, 0), (-1, 0), 16),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('STYLE', (0, 0), (-1, -1), cell_style),
     ]
 
     header_data = [Paragraph(cell, header_style) for cell in df.columns.tolist()]
+    # Manually reorder the header_data list to match the desired column order
+    column_order = ["Clash ID", "Image", "View Name", "Date Found", "Main Zone", "Sub Zone", "Level",
+                    "Issues Type", "Issues Status", "Description", "Discipline", "Assign to"]
+    header_data_reordered = [header_data[df.columns.get_loc(col)] for col in column_order]
     content = []
 
     for _, row in df.iterrows():
         try:
-            img = Image(row['Image'], width=60, height=60)
+            img = Image(row['Image'], width=150, height=150)
         except FileNotFoundError:
             img = 'Image not found'
         row_data = [
             Paragraph(str(row["Clash ID"]), cell_style),
+            img,
             Paragraph(str(row["View Name"]), cell_style),
             Paragraph(str(row["Date Found"]), cell_style),
             Paragraph(str(row["Main Zone"]), cell_style),
@@ -139,11 +144,10 @@ def generate_pdf(df, project_name):
             Paragraph(str(row["Description"]), cell_style),
             Paragraph(str(row["Discipline"]), cell_style),
             Paragraph(str(row["Assign to"]), cell_style),
-            img
         ]
         content.append(row_data)
 
-    data = [header_data] + content
+    data = [header_data_reordered] + content
 
     table = Table(data, repeatRows=1, style=table_style)
     elems = [Spacer(1, 0.5*inch), table]
