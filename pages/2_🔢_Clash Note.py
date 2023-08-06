@@ -1,111 +1,112 @@
 import streamlit as st
 import pandas as pd
 import os
+import io
 from PIL import Image
 import datetime
 
+# Set up the page
 st.set_page_config(page_title='Clash Issues', page_icon=":1234:", layout='centered')
-css_file="styles/main.css"
+css_file = "styles/main.css"
 with open(css_file) as f:
     st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
 st.title('Clash Note')
+
+# User input for project name
 project_name = st.text_input("Please enter the project name", value="")
-uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
+# File uploaders
+csv_file = st.file_uploader("Upload CSV", type=['csv'])
+uploaded_images = st.file_uploader("Upload JPEGs", type=['jpg', 'jpeg'], accept_multiple_files=True)
 
-if uploaded_file is not None:
-    data = pd.read_csv(uploaded_file, encoding='utf-8-sig')
-    data = data.dropna()
-    data["Date Found"] = pd.to_datetime(data["Date Found"]).dt.strftime("%m/%d/%Y")
+# Create a dictionary to map image names to their data
+image_dict = {img.name: img.getvalue() for img in uploaded_images}
+
+if csv_file:
+    df = pd.read_csv(csv_file, encoding='utf-8-sig')
+    df = df.dropna()
+    df["Date Found"] = pd.to_datetime(df["Date Found"]).dt.strftime("%m/%d/%Y")
+
+    # Drop the 'ImagePath' column
+    if 'ImagePath' in df.columns:
+        df.drop(columns=['ImagePath'], inplace=True)
+
+    # Ensure 'Notes' and 'Usage' columns exist in df
+    if 'Notes' not in df.columns:
+        df['Notes'] = ""
+    if 'Usage' not in df.columns:
+        df['Usage'] = ""
+
+    # Update the DataFrame with the values from the session state before filtering
+    for _, row in df.iterrows():
+        clash_id = row['Clash ID']
+        note_key = f"note_{clash_id}"
+        usage_key = f"usage_{clash_id}"
+
+        # Retrieve values from session state or use default values
+        default_note = st.session_state.get(note_key, "")
+        default_usage = st.session_state.get(usage_key, "Using")
+
+        df.loc[df['Clash ID'] == clash_id, 'Notes'] = default_note
+        df.loc[df['Clash ID'] == clash_id, 'Usage'] = default_usage
 
     st.sidebar.header("Filter Options")
+
+    # Generate filter options based on unique values in the DataFrame
+    filter_cols = ['Clash ID', 'View Name', 'Main Zone', 'Sub Zone', 'Level', 
+                   'Issues Type', 'Issues Status', 'Discipline', 'Assign to', 'Usage']
+    selected_values = {}
+    for col in filter_cols:
+        unique_values = df[col].unique().tolist()
+        selected_values[col] = st.sidebar.selectbox(f'Select {col}', ['All'] + unique_values)
     
-    clash_id_list = data['Clash ID'].unique().tolist()
-    view_name_list = data['ViewName'].unique().tolist()
-    main_zone_list = data['Main Zone'].unique().tolist()
-    sub_zone_list = data['Sub Zone'].unique().tolist()
-    level_list = data['Level'].unique().tolist()
-    issues_type_list = data['Issues Type'].unique().tolist()
-    issues_status_list = data['Issues Status'].unique().tolist()
-    discipline_list = data['Discipline'].unique().tolist()
-    assign_to_list = data['Assign to'].unique().tolist()
+    # Apply filters
+    for col, value in selected_values.items():
+        if value != 'All':
+            df = df[df[col] == value]
 
-    selected_clash_id = st.sidebar.selectbox('Select Clash ID', ['All'] + clash_id_list)
-    selected_view_name = st.sidebar.selectbox('Select View Name', ['All'] + view_name_list)
-    selected_main_zone = st.sidebar.selectbox('Select Main Zone', ['All'] + main_zone_list)
-    selected_sub_zone = st.sidebar.selectbox('Select Sub Zone', ['All'] + sub_zone_list)
-    selected_level = st.sidebar.selectbox('Select Level', ['All'] + level_list)
-    selected_issues_type = st.sidebar.selectbox('Select Issues Type', ['All'] + issues_type_list)
-    selected_issues_status = st.sidebar.selectbox('Select Issues Status', ['All'] + issues_status_list)
-    selected_discipline = st.sidebar.selectbox('Select Discipline', ['All'] + discipline_list)
-    selected_assign_to = st.sidebar.selectbox('Select Assign to', ['All'] + assign_to_list)
-    selected_usage = st.sidebar.selectbox('Select Usage', ['All', 'Using', 'Not Used'])
+    # Display data with images
+    for idx, row in df.iterrows():
+        img_name = row['Image']
 
-    if selected_clash_id != 'All':
-        data = data[data['Clash ID'] == selected_clash_id]
-    if selected_view_name != 'All':
-        data = data[data['ViewName'] == selected_view_name]
-    if selected_main_zone != 'All':
-        data = data[data['Main Zone'] == selected_main_zone]
-    if selected_sub_zone != 'All':
-        data = data[data['Sub Zone'] == selected_sub_zone]
-    if selected_level != 'All':
-        data = data[data['Level'] == selected_level]
-    if selected_issues_type != 'All':
-        data = data[data['Issues Type'] == selected_issues_type]
-    if selected_issues_status != 'All':
-        data = data[data['Issues Status'] == selected_issues_status]
-    if selected_discipline != 'All':
-        data = data[data['Discipline'] == selected_discipline]
-    if selected_assign_to != 'All':
-        data = data[data['Assign to'] == selected_assign_to]
+        if img_name in image_dict:
+            img = Image.open(io.BytesIO(image_dict[img_name]))
 
-    notes = []
-
-    for idx in range(len(data)):
-        image_path = data.iloc[idx]['ImagePath']
-        view_name = data.iloc[idx]['ViewName']
-        clash_id = data.iloc[idx]['Clash ID']
-        issue_type = data.iloc[idx]['Issues Type']
-        issue_status = data.iloc[idx]['Issues Status']
-        try:
-            image = Image.open(image_path)
-
+            # Two-column layout
             col1, col2 = st.columns([3, 3])
             with col1:
-                st.image(image, use_column_width=True)
+                st.image(img, use_column_width=True)
             with col2:
-                st.write(view_name)
-                st.write(f"Issue Type: {issue_type}")
-                st.write(f"Issue Status: {issue_status}")
-                #note = st.text_input(f"Add a note for {clash_id}", key=str(idx))
-                note = st.text_area(f"Add a note for {clash_id}", key=str(idx))
+                st.write(row['View Name'])
+                st.write(f"Issue Type: {row['Issues Type']}")
+                st.write(f"Issue Status: {row['Issues Status']}")
+                st.write(f"Description: {row['Description']}")
 
-                usage = st.selectbox('Select usage', ['Using', 'Not Used'], key=f"usage_{idx}")
-                notes.append((note, usage))
-                
+                # Generate unique keys for storing values in session state
+                note_key = f"note_{row['Clash ID']}"
+                usage_key = f"usage_{row['Clash ID']}"
+
+                note = st.text_area(f"Add a note for {row['Clash ID']}", value=row['Notes'], key=str(idx))
+                usage = st.selectbox('Select usage', ['Using', 'Not Used'], index=(1 if row['Usage'] == 'Not Used' else 0), key=f"usage_{idx}")
+
+                # Store the captured values in session state
+                st.session_state[note_key] = note
+                st.session_state[usage_key] = usage
+
             st.markdown("---")  # Draw a horizontal line after each row
+        else:
+            st.write("Image not found")
 
-        except Exception as e:
-            st.write(f"Error loading image: {e}")
-
-    # Split the notes into separate note and usage columns
-    data['Text Note'] = [note for note, usage in notes]
-    data['Usage'] = [usage for note, usage in notes]
-
-    if 'Usage' in data.columns and selected_usage != 'All':
-        data = data[data['Usage'] == selected_usage]
-
-    st.table(data)
-
+    # Export to CSV
     if st.button("Export CSV"):
-        # Get the project name from the user
-        # Generate the filename using the current date and the project name
         filename = datetime.datetime.now().strftime("%Y_%m_%d") + "_" + project_name + ".csv"
-    
-        desktop_path = os.path.join(os.path.expanduser('~'), 'Desktop')
-        file_path = os.path.join(desktop_path, filename)
-        data.to_csv(file_path, encoding='utf-8-sig', index=False)
-        st.write("File exported successfully!")
+        csv_data = df.to_csv(encoding='utf-8-sig', index=False).encode('utf-8-sig')
+        
+        st.download_button(
+            label="Download CSV",
+            data=io.BytesIO(csv_data),
+            file_name=filename,
+            mime="text/csv"
+        )
 else:
     st.write("Please upload a CSV file.")

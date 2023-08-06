@@ -179,6 +179,7 @@ def generate_pdf(df, project_name):
 
     data = [header_data_reordered] + content
     col_widths = [100, 170, 80, 80, 80, 80, 80, 80, 80, 90, 80, 80]
+    #1 point = 1/72 of an inch
     table = Table(data, colWidths=col_widths, repeatRows=1, style=table_style)
     elems = [Spacer(1, 0.5*inch), table]
     pdf.build(elems)
