@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import os
-import io
 from PIL import Image
 import datetime
 
@@ -70,7 +69,7 @@ if csv_file:
         img_name = row['Image']
 
         if img_name in image_dict:
-            img = Image.open(io.BytesIO(image_dict[img_name]))
+            img = Image.open(BytesIO(image_dict[img_name]))
 
             # Two-column layout
             col1, col2 = st.columns([3, 3])
@@ -104,7 +103,7 @@ if csv_file:
         
         st.download_button(
             label="Download CSV",
-            data=io.BytesIO(csv_data),
+            data=BytesIO(csv_data),
             file_name=filename,
             mime="text/csv"
         )
