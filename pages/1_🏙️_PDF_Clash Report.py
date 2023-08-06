@@ -107,7 +107,7 @@ def generate_pdf(df, project_name):
     cell_style.fontName = "Sarabun"
     cell_style.alignment = TA_LEFT
 
-    # [Rest of your code remains the same here, except in the table-building section]
+    
     content = []
 
     for _, row in df.iterrows():
@@ -178,8 +178,8 @@ def generate_pdf(df, project_name):
         content.append(row_data)
 
     data = [header_data_reordered] + content
-
-    table = Table(data, repeatRows=1, style=table_style)
+    col_widths = [100, 170, 80, 80, 80, 80, 80, 80, 80, 90, 80, 80]
+    table = Table(data, colWidths=col_widths, repeatRows=1, style=table_style)
     elems = [Spacer(1, 0.5*inch), table]
     pdf.build(elems)
     output.seek(0)
