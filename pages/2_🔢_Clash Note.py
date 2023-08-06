@@ -3,6 +3,7 @@ import pandas as pd
 import os
 from PIL import Image
 import datetime
+from io import BytesIO
 
 # Set up the page
 st.set_page_config(page_title='Clash Issues', page_icon=":1234:", layout='centered')
