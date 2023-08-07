@@ -4,6 +4,12 @@ from PIL import Image
 import datetime
 from io import BytesIO
 
+# Initialize session state attributes for notes and usage if they don't exist
+if 'notes' not in st.session_state:
+    st.session_state.notes = {}
+if 'usage' not in st.session_state:
+    st.session_state.usage = {}
+
 # Set up the page
 st.set_page_config(page_title='Clash Issues', page_icon=":vs:", layout='centered')
 css_file = "styles/main.css"
@@ -63,27 +69,25 @@ if csv_file:
                 st.write(f"<b>Issue Status:</b> {row['Issues Status']}", unsafe_allow_html=True)
                 st.write(f"<b>Description:</b> {row['Description']}", unsafe_allow_html=True)
 
-                # Generate more unique keys by combining the row index and Clash ID
                 note_key = f"note_{row['Clash ID']}_{idx}"
-                usage_key = f"usage_{row['Clash ID']}_{idx}"
-
-                # Display the note in the text area and update the dataframe
-                note = st.text_area(f"Add a note for {row['Clash ID']}", value=row['Notes'], key=note_key, height=150)
+                initial_note = st.session_state.notes.get(note_key, row['Notes'])
+                note = st.text_area(f"Add a note for {row['Clash ID']}", value=initial_note, key=note_key, height=150)
                 df.at[idx, 'Notes'] = note
+                st.session_state.notes[note_key] = note
 
-                # Display the usage dropdown and update the dataframe
-                usage = st.selectbox('Select usage', ['Using', 'Not Used'], index=(1 if row['Usage'] == 'Not Used' else 0), key=usage_key)
+                usage_key = f"usage_{row['Clash ID']}_{idx}"
+                initial_usage_index = 1 if st.session_state.usage.get(usage_key, row['Usage']) == 'Not Used' else 0
+                usage = st.selectbox('Select usage', ['Using', 'Not Used'], index=initial_usage_index, key=usage_key)
                 df.at[idx, 'Usage'] = usage
+                st.session_state.usage[usage_key] = usage
 
-                # If Usage is "Not Used", set Issues Status to "Resolved"
                 if usage == 'Not Used':
                     df.at[idx, 'Issues Status'] = 'Resolved'
             
-            st.markdown("---")  # Draw a horizontal line after each row
+            st.markdown("---")
         else:
             st.write("Image not found")
 
-    # Export to CSV
     if st.button("Export CSV"):
         filename = datetime.datetime.now().strftime("%Y_%m_%d") + "_" + project_name + ".csv"
         csv_data = df.to_csv(encoding='utf-8-sig', index=False).encode('utf-8-sig')
