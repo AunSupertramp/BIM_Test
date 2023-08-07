@@ -75,12 +75,12 @@ if csv_file:
             # Two-column layout
             col1, col2 = st.columns([3, 3])
             with col1:
+                st.write(f"<b>{row['View Name']}</b>", unsafe_allow_html=True)
                 st.image(img, use_column_width=True)
             with col2:
-                st.write(row['View Name'])
-                st.write(f"Issue Type: {row['Issues Type']}")
-                st.write(f"Issue Status: {row['Issues Status']}")
-                st.write(f"Description: {row['Description']}")
+                st.write(f"<b>Issue Type:</b> {row['Issues Type']}", unsafe_allow_html=True)
+                st.write(f"<b>Issue Status:</b> {row['Issues Status']}", unsafe_allow_html=True)
+                st.write(f"<b>Description:</b> {row['Description']}", unsafe_allow_html=True)
 
                 # Generate unique keys for storing values in session state
                 note_key = f"note_{row['Clash ID']}"
@@ -96,6 +96,8 @@ if csv_file:
                 # If Usage is "Not Used", set Issues Status to "Resolved"
                 if usage == 'Not Used':
                     df.loc[idx, 'Issues Status'] = 'Resolved'
+                if usage == 'Using':
+                    df.loc[idx, 'Issues Status'] = 'Unresolve'
 
             st.markdown("---")  # Draw a horizontal line after each row
         else:
