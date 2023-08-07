@@ -24,7 +24,7 @@ def main():
     project_name = st.text_input("Enter Project Name:")
 
     csv_file = st.file_uploader("Upload CSV", type=['csv'])
-    uploaded_images = st.file_uploader("Upload JPEGs", type=['jpg', 'jpeg'], accept_multiple_files=True)
+    uploaded_images = st.file_uploader("Upload Images", type=['jpg', 'jpeg', 'png'], accept_multiple_files=True)
 
     if csv_file and uploaded_images:
         df = pd.read_csv(csv_file, encoding='utf-8-sig')
