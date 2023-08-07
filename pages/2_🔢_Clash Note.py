@@ -93,6 +93,10 @@ if csv_file:
                 st.session_state[note_key] = note
                 st.session_state[usage_key] = usage
 
+                # If Usage is "Not Used", set Issues Status to "Resolved"
+                if usage == 'Not Used':
+                    df.loc[idx, 'Issues Status'] = 'Resolved'
+
             st.markdown("---")  # Draw a horizontal line after each row
         else:
             st.write("Image not found")
