@@ -54,7 +54,7 @@ if csv_file:
 
     # Generate filter options based on unique values in the DataFrame
     filter_cols = ['Clash ID', 'View Name', 'Main Zone', 'Sub Zone', 'Level', 
-                   'Issues Type', 'Issues Status', 'Discipline', 'Assign to', 'Usage']
+                   'Issues Type', 'Issues Status', 'Discipline', 'Assign To', 'Usage']
     selected_values = {}
     for col in filter_cols:
         unique_values = df[col].unique().tolist()

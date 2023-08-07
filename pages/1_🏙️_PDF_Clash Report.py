@@ -40,7 +40,7 @@ def main():
             "Issues Status": "Issues Status",
             "Description": "Description",
             "Discipline": "Discipline",
-            "Assign to": "Assign to",
+            "Assign To": "Assign To",
             "Image": "Image",
             "ImagePath": "ImagePath"
         })
@@ -146,7 +146,7 @@ def generate_pdf(df, project_name):
 
     header_data = [Paragraph(cell, header_style) for cell in df.columns.tolist()]
     column_order = ["Clash ID", "Image", "View Name", "Date Found", "Main Zone", "Sub Zone", "Level",
-                    "Issues Type", "Issues Status", "Description", "Discipline", "Assign to"]
+                    "Issues Type", "Issues Status", "Description", "Discipline", "Assign To"]
     header_data_reordered = [header_data[df.columns.get_loc(col)] for col in column_order]
     content = []
 
@@ -173,7 +173,7 @@ def generate_pdf(df, project_name):
             Paragraph(str(row["Issues Status"]), cell_style),
             Paragraph(str(row["Description"]), cell_style),
             Paragraph(str(row["Discipline"]), cell_style),
-            Paragraph(str(row["Assign to"]), cell_style),
+            Paragraph(str(row["Assign To"]), cell_style),
         ]
         content.append(row_data)
 
