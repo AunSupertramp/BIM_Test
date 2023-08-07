@@ -17,7 +17,7 @@ project_name = st.text_input("Please enter the project name", value="")
 
 # File uploaders
 csv_file = st.file_uploader("Upload CSV", type=['csv'])
-uploaded_images = st.file_uploader("Upload JPEGs", type=['jpg', 'jpeg'], accept_multiple_files=True)
+uploaded_images = st.file_uploader("Upload Images", type=['jpg', 'jpeg', 'png'], accept_multiple_files=True)
 
 # Create a dictionary to map image names to their data
 image_dict = {img.name: img.getvalue() for img in uploaded_images}
