@@ -23,7 +23,7 @@ if 'usage' not in st.session_state:
     st.session_state.usage = {}
 
 # Set up the page
-st.set_page_config(page_title='Clash Issues Note Report', page_icon=":vs:", layout='centered')
+st.set_page_config(page_title='Clash Issues Note Report A4', page_icon=":vs:", layout='centered')
 css_file = "styles/main.css"
 with open(css_file) as f:
     st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
