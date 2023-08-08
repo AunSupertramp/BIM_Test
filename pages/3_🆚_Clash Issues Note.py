@@ -9,7 +9,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Frame, PageTemplate, BaseDocTemplate, Image as ReportlabImage
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-
+from reportlab.platypus import Paragraph
 import time
 
 # Register Thai fonts
@@ -65,6 +65,7 @@ if csv_file:
             df = df[df[col] == value]
 
     # Display data with images and notes
+    
     for idx, row in df.iterrows():
         img_name = row['Image']
 
@@ -152,6 +153,14 @@ def generate_pdf(df, project_name):
 
     # Header data
     header_data = ["Image", "Details"]
+    styles = getSampleStyleSheet()
+    normal_style = styles["Normal"]
+    normal_style.fontName = 'Sarabun'
+    normal_style.fontSize = 16
+
+    bold_style = styles["Normal"]
+    bold_style.fontName = 'Sarabun-Bold'
+    bold_style.fontSize = 16
 
     # Table data
     data = [header_data]
@@ -162,13 +171,24 @@ def generate_pdf(df, project_name):
         else:
             image_path = "Image Not Found"
 
-        details = f"Clash ID: {row['Clash ID']}\n" \
-                  f"Issue Type: {row['Issues Type']}\n" \
-                  f"Issue Status: {row['Issues Status']}\n" \
-                  f"Description: {row['Description']}\n"  \
-                  f"Note: {row['Notes']}"
+        details_list = [
+            f"<b>Clash ID:</b> {row['Clash ID']}",
+            f"<b>Issue Type:</b> {row['Issues Type']}",
+            f"<b>Issue Status:</b> {row['Issues Status']}",
+            f"<b>Description:</b> {row['Description']}",
+        ]
+# For remaining lines of the note, add indentation
+        if row['Notes']:
+            note_lines = row['Notes'].splitlines()
+            details_list.append(f"<b>Note:</b> {note_lines[0]}")  # First line of the note
+            for line in note_lines[1:]:
+                details_list.append(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{line}") # Adds each line of the note with indentation
 
-        data.append([image_path, details])
+        details = "<br/>".join(details_list)
+
+        details_paragraph = Paragraph(details, style=normal_style)
+
+        data.append([image_path, details_paragraph])
 
     # Define column widths
     page_width, page_height = A4 
@@ -191,7 +211,7 @@ def generate_pdf(df, project_name):
     ])
     # Create table with specified column widths
     table = Table(data, colWidths=col_widths, repeatRows=1, style=table_style)
-
+ 
     story.append(table)
     pdf.build(story)
 
