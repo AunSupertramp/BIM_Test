@@ -95,7 +95,7 @@ if csv_file:
 
                 # If Usage is "Not Used", set Issues Status to "Resolved"
                 if usage == 'Not Used':
-                    df.loc[idx, 'Issues Status'] = 'Resolved'
+                    df.loc[idx, 'Issues Status'] = 'Tracking'
                 if usage == 'Using':
                     df.loc[idx, 'Issues Status'] = 'Unresolve'
 
