@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import os
 from PIL import Image
 import datetime
 from io import BytesIO
@@ -22,6 +21,12 @@ uploaded_images = st.file_uploader("Upload Images", type=['jpg', 'jpeg', 'png'],
 # Create a dictionary to map image names to their data
 image_dict = {img.name: img.getvalue() for img in uploaded_images}
 
+# Initialize session state attributes for notes and usage if they don't exist
+if 'notes' not in st.session_state:
+    st.session_state.notes = {}
+if 'usage' not in st.session_state:
+    st.session_state.usage = {}
+
 if csv_file:
     df = pd.read_csv(csv_file, encoding='utf-8-sig')
     df = df.dropna()
@@ -37,19 +42,6 @@ if csv_file:
     if 'Usage' not in df.columns:
         df['Usage'] = ""
 
-    # Update the DataFrame with the values from the session state before filtering
-    for _, row in df.iterrows():
-        clash_id = row['Clash ID']
-        note_key = f"note_{clash_id}"
-        usage_key = f"usage_{clash_id}"
-
-        # Retrieve values from session state or use default values
-        default_note = st.session_state.get(note_key, "")
-        default_usage = st.session_state.get(usage_key, "Using")
-
-        df.loc[df['Clash ID'] == clash_id, 'Notes'] = default_note
-        df.loc[df['Clash ID'] == clash_id, 'Usage'] = default_usage
-
     st.sidebar.header("Filter Options")
 
     # Generate filter options based on unique values in the DataFrame
@@ -59,11 +51,11 @@ if csv_file:
     for col in filter_cols:
         unique_values = df[col].unique().tolist()
         selected_values[col] = st.sidebar.selectbox(f'Select {col}', ['All'] + unique_values)
-    
+
     # Apply filters
     for col, value in selected_values.items():
         if value != 'All':
-            df = df[df[col] == value]
+            df = df[df[col] == value].copy()
 
     # Display data with images
     for idx, row in df.iterrows():
@@ -82,24 +74,22 @@ if csv_file:
                 st.write(f"<b>Issue Status:</b> {row['Issues Status']}", unsafe_allow_html=True)
                 st.write(f"<b>Description:</b> {row['Description']}", unsafe_allow_html=True)
 
-                # Generate unique keys for storing values in session state
-                note_key = f"note_{row['Clash ID']}"
-                usage_key = f"usage_{row['Clash ID']}"
+                note_key = f"note_{row['Clash ID']}_{idx}"
+                initial_note = st.session_state.notes.get(note_key, row['Notes'])
+                note = st.text_area(f"Add a note for {row['Clash ID']}", value=initial_note, key=note_key, height=150)
+                df.at[idx, 'Notes'] = note
+                st.session_state.notes[note_key] = note
 
-                note = st.text_area(f"Add a note for {row['Clash ID']}", value=row['Notes'], key=str(idx))
-                usage = st.selectbox('Select usage', ['Using', 'Not Used'], index=(1 if row['Usage'] == 'Not Used' else 0), key=f"usage_{idx}")
+                usage_key = f"usage_{row['Clash ID']}_{idx}"
+                initial_usage_index = 1 if st.session_state.usage.get(usage_key, row['Usage']) == 'Not Used' else 0
+                usage = st.selectbox('Select usage', ['Using', 'Not Used'], index=initial_usage_index, key=usage_key)
+                df.at[idx, 'Usage'] = usage
+                st.session_state.usage[usage_key] = usage
 
-                # Store the captured values in session state
-                st.session_state[note_key] = note
-                st.session_state[usage_key] = usage
-
-                # If Usage is "Not Used", set Issues Status to "Resolved"
                 if usage == 'Not Used':
-                    df.loc[idx, 'Issues Status'] = 'Tracking'
-                if usage == 'Using':
-                    df.loc[idx, 'Issues Status'] = 'Unresolve'
-
-            st.markdown("---")  # Draw a horizontal line after each row
+                    df.at[idx, 'Issues Status'] = 'Tracking'
+            
+            st.markdown("---")
         else:
             st.write("Image not found")
 
