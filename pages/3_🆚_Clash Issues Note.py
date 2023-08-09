@@ -41,9 +41,12 @@ uploaded_images = st.file_uploader("Upload Images", type=['jpg', 'jpeg', 'png'],
 image_dict = {img.name: img.getvalue() for img in uploaded_images} if uploaded_images else {}
 
 if csv_file:
-    df = pd.read_csv(csv_file, encoding='utf-8-sig')
+    if 'df' not in st.session_state:
+        st.session_state.df = pd.read_csv(csv_file, encoding='utf-8-sig')
+    df = st.session_state.df
+
     df["Notes"].fillna("", inplace=True)
-    df["Usage"].fillna("Using", inplace=True)
+    df["Usage"].fillna("Tracking", inplace=True)
     df["Date Found"] = pd.to_datetime(df["Date Found"]).dt.strftime("%m/%d/%Y")
 
     # Drop the 'ImagePath' column
@@ -59,13 +62,15 @@ if csv_file:
         unique_values = df[col].unique().tolist()
         selected_values[col] = st.sidebar.selectbox(f'Select {col}', ['All'] + unique_values)
     
-    # Apply filters
+    # Apply filters to the session-stored DataFrame
     for col, value in selected_values.items():
         if value != 'All':
             df = df[df[col] == value]
 
+    # Define the list of usage options
+    usage_options = ['Tracking', 'High Priority', 'Not Used']
+
     # Display data with images and notes
-    
     for idx, row in df.iterrows():
         img_name = row['Image']
 
@@ -89,14 +94,19 @@ if csv_file:
                 st.session_state.notes[note_key] = note
 
                 usage_key = f"usage_{row['Clash ID']}_{idx}"
-                initial_usage_index = 1 if st.session_state.usage.get(usage_key, row['Usage']) == 'Not Used' else 0
-                usage = st.selectbox('Select usage', ['Using', 'Not Used'], index=initial_usage_index, key=usage_key)
+                initial_usage_index = usage_options.index(row['Usage']) if row['Usage'] in usage_options else 0
+                usage = st.selectbox('Select usage', usage_options, index=initial_usage_index, key=usage_key)
+
                 df.at[idx, 'Usage'] = usage
                 st.session_state.usage[usage_key] = usage
-
+                
                 if usage == 'Not Used':
-                    df.at[idx, 'Issues Status'] = 'Tracking'
-            
+                    df.at[idx, 'Issues Status'] = 'Resolved'
+
+                # Debugging lines
+                st.write(f"Updated DataFrame value for Usage: {df.at[idx, 'Usage']}")
+                st.write(f"Session state value for {usage_key}: {st.session_state.usage[usage_key]}")
+
             st.markdown("---")
         else:
             st.write("Image not found")
@@ -111,8 +121,6 @@ if csv_file:
             file_name=filename,
             mime="text/csv"
         )
-else:
-    st.write("Please upload a CSV file.")
 
 
 

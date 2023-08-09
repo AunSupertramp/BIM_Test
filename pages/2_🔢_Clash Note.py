@@ -32,15 +32,20 @@ if csv_file:
     df = df.dropna()
     df["Date Found"] = pd.to_datetime(df["Date Found"]).dt.strftime("%m/%d/%Y")
 
-    # Drop the 'ImagePath' column
-    if 'ImagePath' in df.columns:
-        df.drop(columns=['ImagePath'], inplace=True)
-
     # Ensure 'Notes' and 'Usage' columns exist in df
     if 'Notes' not in df.columns:
         df['Notes'] = ""
     if 'Usage' not in df.columns:
-        df['Usage'] = ""
+        df['Usage'] = "Tracking"
+
+    # Update the dataframe with session state values
+    for idx, row in df.iterrows():
+        note_key = f"note_{idx}_{row['Clash ID']}"
+        usage_key = f"usage_{idx}_{row['Clash ID']}"
+        if note_key in st.session_state:
+            df.at[idx, 'Notes'] = st.session_state[note_key]
+        if usage_key in st.session_state:
+            df.at[idx, 'Usage'] = st.session_state[usage_key]
 
     st.sidebar.header("Filter Options")
 
@@ -52,19 +57,19 @@ if csv_file:
         unique_values = df[col].unique().tolist()
         selected_values[col] = st.sidebar.selectbox(f'Select {col}', ['All'] + unique_values)
 
-    # Apply filters
+    # Apply filters to the dataframe
+    filtered_df = df.copy()
     for col, value in selected_values.items():
         if value != 'All':
-            df = df[df[col] == value].copy()
+            filtered_df = filtered_df[filtered_df[col] == value]
 
-    # Display data with images
-    for idx, row in df.iterrows():
+    # Display data with images for the filtered dataframe
+    for idx, row in filtered_df.iterrows():
         img_name = row['Image']
 
         if img_name in image_dict:
             img = Image.open(BytesIO(image_dict[img_name]))
 
-            # Two-column layout
             col1, col2 = st.columns([3, 3])
             with col1:
                 st.write(f"<b>{row['View Name']}</b>", unsafe_allow_html=True)
@@ -74,21 +79,20 @@ if csv_file:
                 st.write(f"<b>Issue Status:</b> {row['Issues Status']}", unsafe_allow_html=True)
                 st.write(f"<b>Description:</b> {row['Description']}", unsafe_allow_html=True)
 
-                note_key = f"note_{row['Clash ID']}_{idx}"
+                note_key = f"note_{idx}_{row['Clash ID']}"
                 initial_note = st.session_state.notes.get(note_key, row['Notes'])
                 note = st.text_area(f"Add a note for {row['Clash ID']}", value=initial_note, key=note_key, height=150)
-                df.at[idx, 'Notes'] = note
                 st.session_state.notes[note_key] = note
 
-                usage_key = f"usage_{row['Clash ID']}_{idx}"
-                initial_usage_index = 1 if st.session_state.usage.get(usage_key, row['Usage']) == 'Not Used' else 0
-                usage = st.selectbox('Select usage', ['Using', 'Not Used'], index=initial_usage_index, key=usage_key)
-                df.at[idx, 'Usage'] = usage
+                usage_key = f"usage_{idx}_{row['Clash ID']}"
+                usage_options = ['Tracking', 'Not Used', 'High Priority']
+                initial_usage_value = st.session_state.usage.get(usage_key, row['Usage'])
+                usage = st.selectbox('Select usage', usage_options, index=usage_options.index(initial_usage_value), key=usage_key)
                 st.session_state.usage[usage_key] = usage
 
                 if usage == 'Not Used':
-                    df.at[idx, 'Issues Status'] = 'Tracking'
-            
+                    df.at[idx, 'Issues Status'] = 'Resolved'
+
             st.markdown("---")
         else:
             st.write("Image not found")
