@@ -40,7 +40,8 @@ with content1:
 
         st.markdown("""
 ### Qualifications and Professional Memberships
-- ◉ Bachelor of Civil Engineering, Faculty of Engineering Thammasat University, Bangkok, Thailand
+- ◉ Master of Urban Environmental Planning and Development, Faculty of Architecture and Planning, Thammasat University, Rangsit Campus, Pathumthani, Thailand
+- ◉ Bachelor of Civil Engineering, Faculty of Engineering, Thammasat University, Rangsit Campus, Pathumthani, Thailand
 
 - ◉ License for Professional Practice Civil Engineer, Engineering Council of Thailand, Associate Engineer ID.272693
 
