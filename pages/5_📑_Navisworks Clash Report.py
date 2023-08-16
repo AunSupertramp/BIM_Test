@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from PIL import Image
 from io import BytesIO
 
-st.set_page_config(page_title='Clash Issues Report', page_icon=":vs:", layout='centered')
+st.set_page_config(page_title='Clash Issues Report', page_icon=":bookmark_tabs:", layout='centered')
 
 css_file = "styles/main.css"
 with open(css_file) as f:
