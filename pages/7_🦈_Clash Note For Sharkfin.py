@@ -38,6 +38,8 @@ if 'notes' not in st.session_state:
     st.session_state.notes = {}
 if 'usage' not in st.session_state:
     st.session_state.usage = {}
+if 'due_dates' not in st.session_state:  # Initialize session state for due dates
+    st.session_state.due_dates = {}
 
 st.set_page_config(page_title='Clash Issues Note Report For Shark Fin', page_icon=":shark:", layout='centered')
 css_file = "styles/main.css"
@@ -104,6 +106,19 @@ if csv_file:
                 st.session_state.usage[usage_key] = usage
                 if usage == 'Not Used':
                     df.at[idx, 'Issues Status'] = 'Resolved'
+
+
+
+                due_date_key = f"due_date_{row['Clash ID']}_{idx}"
+                if due_date_key not in st.session_state.due_dates:
+                    initial_due_date = datetime.date.today() if pd.isnull(row.get('Due Date')) else pd.to_datetime(row['Due Date']).date()
+                else:
+                    initial_due_date = st.session_state.due_dates[due_date_key]
+                due_date = st.date_input(f"Select due date for {row['Clash ID']}", value=initial_due_date, key=due_date_key)
+                if 'Due Date' not in df.columns:
+                    df['Due Date'] = None
+                df.at[idx, 'Due Date'] = due_date
+                st.session_state.due_dates[due_date_key] = due_date
             st.markdown("---")
         else:
             st.write("Image not found")
@@ -152,6 +167,7 @@ def generate_pdf(df, project_name):
     normal_style = styles["Normal"]
     normal_style.fontName = 'Sarabun'
     normal_style.fontSize = 16
+    normal_style.bold = False
 
     bold_style = styles["Normal"]
     bold_style.fontName = 'Sarabun-Bold'
@@ -172,7 +188,8 @@ def generate_pdf(df, project_name):
             f"<b>Main Zone:</b> <l>{row['Main Zone']}</l>",
             f"<b>Description:</b> <l>{row['Description']}</l>",
             f"<b>Issue Type:</b> <l>{row['Issues Type']}</l>",
-            f"<b>Issue Status:</b> <l>{row['Issues Status']}</l>"
+            f"<b>Issue Status:</b> <l>{row['Issues Status']}</l>",
+            f"<b>Due Date:</b> <l>{row['Due Date']}</l>"
         ]
         for text in texts:
             bold_part, light_part = formatted_paragraph(text, styles)
@@ -193,14 +210,14 @@ def generate_pdf(df, project_name):
     page_width, page_height = A4 
     col_widths = [(0.1 * page_width), (0.3 * page_width), (0.4* page_width)]
     table_style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), '#799FCB'),
+        ('BACKGROUND', (0, 0), (-1, 0), '#f83e3e'),
         ('TEXTCOLOR', (0, 0), (-1, 0), '#2B2B2B'),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('FONTNAME', (0, 0), (-1, 0), 'Sarabun-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 18),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), '#FFFFFF'),
+        ('BACKGROUND', (0, 1), (-1, -1), '#ffffff'),
         ('GRID', (0, 0), (-1, -1), 1, '#2B2B2B'),
         ('FONTNAME', (0, 1), (-1, -1), 'Sarabun'),
         ('FONTSIZE', (1, 1), (1, -1), 16),
