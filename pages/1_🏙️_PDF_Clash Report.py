@@ -15,6 +15,7 @@ from io import BytesIO
 import os
 import shutil
 import tempfile
+from bs4 import BeautifulSoup
 EXTRACTED_FLAG = False
 
 st.set_page_config(page_title='Generate PDF Report', page_icon=":cityscape:", layout='centered')
