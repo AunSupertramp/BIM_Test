@@ -9,24 +9,66 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.units import inch
 from PIL import Image as pil_image
-
+import zipfile
 import time
 from io import BytesIO
 import os
+import shutil
+import tempfile
+EXTRACTED_FLAG = False
 
 st.set_page_config(page_title='Generate PDF Report', page_icon=":cityscape:", layout='centered')
+css_file = "styles/main.css"
+with open(css_file) as f:
+    st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
 
 pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
 pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
+
+def extract_images_from_zip(uploaded_zip_file):
+    extracted_images = []
+    
+    # Create a temporary directory to extract files into
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        # Save the uploaded file to a temporary file
+        temp_zip_path = os.path.join(tmpdirname, 'temp.zip')
+        with open(temp_zip_path, 'wb') as f:
+            f.write(uploaded_zip_file.getvalue())
+        
+        # Extract the zip file
+        shutil.unpack_archive(temp_zip_path, tmpdirname)
+
+        # Walk through the extracted files and pick up images
+        for subdir, _, files in os.walk(tmpdirname):
+            for file in files:
+                if file.lower().endswith(('.jpg', '.jpeg', '.png')):
+                    file_path = os.path.join(subdir, file)
+                    with open(file_path, 'rb') as f:
+                        extracted_images.append((file, f.read()))
+
+    return extracted_images
 
 def main():
     st.title('Clash Report Generator')
     project_name = st.text_input("Enter Project Name:")
 
     csv_file = st.file_uploader("Upload CSV", type=['csv'])
-    uploaded_images = st.file_uploader("Upload Images", type=['jpg', 'jpeg', 'png'], accept_multiple_files=True)
+    uploaded_files = st.file_uploader("Upload Images or ZIP of Images", type=['jpg', 'jpeg', 'png', 'zip', 'application/x-zip-compressed'], accept_multiple_files=True)
 
-    if csv_file and uploaded_images:
+    image_dict = {}
+    for uploaded_file in uploaded_files:
+        file_type = uploaded_file.type
+        if file_type in ['application/zip', 'application/x-zip-compressed']:
+            extracted_images = extract_images_from_zip(uploaded_file)
+            for img_name, img_data in extracted_images:
+                image_dict[img_name] = BytesIO(img_data)
+                #st.write(f"Extracted: {img_name}")  # Debug statement
+        elif file_type in ['image/jpeg', 'image/jpg', 'image/png']:
+            image_dict[uploaded_file.name] = uploaded_file
+        else:
+            st.write(f"Unsupported file type: {file_type}")
+
+    if csv_file and uploaded_files:
         df = pd.read_csv(csv_file, encoding='utf-8-sig')
         df = df.dropna()
         df = df.rename(columns={
@@ -46,8 +88,6 @@ def main():
         })
         df["Date Found"] = pd.to_datetime(df["Date Found"]).dt.strftime("%m/%d/%Y")
 
-        image_dict = {img.name: img for img in uploaded_images}
-
         # Replace the "Image" column with the filenames for display in Streamlit table
         df_display = df.copy()
          # Replace the "Image" column with the actual image objects for processing
@@ -63,6 +103,8 @@ def main():
                 file_name=f"{time.strftime('%Y%m%d')}_ClashReport_{project_name}.pdf",
                 mime="application/pdf"
             )
+
+
 
 
 def generate_pdf(df, project_name):
@@ -110,14 +152,6 @@ def generate_pdf(df, project_name):
     
     content = []
 
-    for _, row in df.iterrows():
-        img_data = row['Image']
-    if img_data != "Image not found":
-        image_stream = BytesIO(img_data.read())
-        img_data.seek(0)  # Reset the file pointer
-        img = Image(image_stream, width=150, height=150)
-    else:
-        img = 'Image not found'
         
     header_style = ParagraphStyle(
         "HeaderStyle",
@@ -152,14 +186,16 @@ def generate_pdf(df, project_name):
 
     for _, row in df.iterrows():
         img_data = row['Image']
-        if isinstance(img_data, str):  # If it's a string, it's "Image not found"
-            img = 'Image not found'
+        if img_data != "Image not found":
+            if isinstance(img_data, BytesIO):  # If it's already a BytesIO object
+                image_stream = img_data
+            else:
+                image_stream = BytesIO(img_data.getvalue())
+            img_data.seek(0)  # Reset the file pointer
+            img = Image(image_stream, width=150, height=150)
         else:
-            try:
-                image_stream = BytesIO(img_data.getvalue())  # use getvalue() for file-like object
-                img = Image(image_stream, width=150, height=150)
-            except:
-                img = 'Image not found'
+            img = 'Image not found'
+
         
         row_data = [
             Paragraph(str(row["Clash ID"]), cell_style),

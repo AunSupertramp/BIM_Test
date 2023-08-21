@@ -59,7 +59,7 @@ def main():
             extracted_images = extract_images_from_zip(uploaded_file)
             for img_name, img_data in extracted_images:
                 image_dict[img_name] = BytesIO(img_data)
-                st.write(f"Extracted: {img_name}")  # Debug statement
+                #st.write(f"Extracted: {img_name}")  # Debug statement
         elif file_type in ['image/jpeg', 'image/jpg', 'image/png']:
             image_dict[uploaded_file.name] = uploaded_file
         else:
