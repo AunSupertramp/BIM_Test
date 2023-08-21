@@ -20,7 +20,8 @@ from bs4 import BeautifulSoup
 
 EXTRACTED_FLAG = False
 
-st.set_page_config(page_title='Generate PDF Report', page_icon=":cityscape:", layout='centered')
+st.set_page_config(page_title='Clash Issues Report', page_icon=":bookmark_tabs:", layout='centered')
+
 css_file = "styles/main.css"
 with open(css_file) as f:
     st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
@@ -266,7 +267,7 @@ def generate_pdf(df, project_name):
     )
 
     table_style = [
-        ('BACKGROUND', (0, 0), (-1, 0), colors.limegreen),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.purple),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('BACKGROUND', (0, 1), (-1, -1), colors.white),
