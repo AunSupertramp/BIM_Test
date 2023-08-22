@@ -13,6 +13,47 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import time
 from reportlab.lib.styles import ParagraphStyle
+import os
+import shutil
+import tempfile
+from bs4 import BeautifulSoup
+
+
+
+
+def extract_images_from_zip(uploaded_zip_file):
+    extracted_images = []
+    
+    # Create a temporary directory to extract files into
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        # Save the uploaded file to a temporary file
+        temp_zip_path = os.path.join(tmpdirname, 'temp.zip')
+        with open(temp_zip_path, 'wb') as f:
+            f.write(uploaded_zip_file.getvalue())
+        
+        # Extract the zip file
+        shutil.unpack_archive(temp_zip_path, tmpdirname)
+
+        # Walk through the extracted files and pick up images
+        for subdir, _, files in os.walk(tmpdirname):
+            for file in files:
+                if file.lower().endswith(('.jpg', '.jpeg', '.png')):
+                    file_path = os.path.join(subdir, file)
+                    with open(file_path, 'rb') as f:
+                        extracted_images.append((file, f.read()))
+
+    return extracted_images
+
+DATE_FORMATS = ["%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"]
+
+def try_parsing_date(text):
+    for fmt in DATE_FORMATS:
+        try:
+            return pd.to_datetime(text, format=fmt).strftime("%m/%d/%Y")
+        except ValueError:
+            pass
+    # If all formats fail, return the original string
+    return text
 
 def formatted_paragraph(text, styles):
     bold_style = ParagraphStyle("BoldStyle", parent=styles["Normal"], fontName="Sarabun-Bold")
@@ -34,6 +75,9 @@ def formatted_paragraph(text, styles):
 pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
 pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
 
+
+
+
 if 'notes' not in st.session_state:
     st.session_state.notes = {}
 if 'usage' not in st.session_state:
@@ -45,12 +89,17 @@ st.set_page_config(page_title='Clash Issues Note Report For Purple Line Project'
 css_file = "styles/main.css"
 with open(css_file) as f:
     st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
-
+image_dict = {}
 st.title('Clash Issues Note Report')
 project_name = st.text_input("Please enter the project name", value="")
 csv_file = st.file_uploader("Upload CSV", type=['csv'])
-uploaded_images = st.file_uploader("Upload Images", type=['jpg', 'jpeg', 'png'], accept_multiple_files=True)
-image_dict = {img.name: img.getvalue() for img in uploaded_images} if uploaded_images else {}
+uploaded_zip = st.file_uploader("Upload Image ZIP", type=['zip'])
+if uploaded_zip:
+    zip_images = extract_images_from_zip(uploaded_zip)
+    for img_name, img_data in zip_images:
+        image_dict[img_name] = img_data
+        
+ROWS_PER_PAGE = 10
 
 if csv_file:
     if 'df' not in st.session_state:
@@ -63,9 +112,9 @@ if csv_file:
 
     df["Notes"].fillna("", inplace=True)
     df["Usage"].fillna("Tracking", inplace=True)
-    df["Date Found"] = pd.to_datetime(df["Date Found"]).dt.strftime("%m/%d/%Y")
-    if 'ImagePath' in df.columns:
-        df.drop(columns=['ImagePath'], inplace=True)
+    #df["Date Found"] = pd.to_datetime(df["Date Found"]).dt.strftime("%m/%d/%Y")
+    df["Date Found"] = df["Date Found"].apply(try_parsing_date)
+    
 
     st.sidebar.header("Filter Options")
     filter_cols = ['Clash ID', 'View Name', 'Main Zone', 'Sub Zone', 'Level', 
@@ -80,7 +129,22 @@ if csv_file:
             df = df[df[col] == value]
 
     usage_options = ['Tracking', 'High Priority', 'Not Used']
-    for idx, row in df.iterrows():
+      # Calculate the number of pages after filtering
+    total_rows = len(df)
+    total_pages = -(-total_rows // ROWS_PER_PAGE)
+    # Only display the slider if there's more than one page
+    if total_pages > 1:
+        selected_page = st.slider('Select a page:', 1, total_pages)
+    else:
+        selected_page = 1  # This is a ceiling division
+
+
+    # Filter the dataframe based on the selected page
+    start_idx = (selected_page - 1) * ROWS_PER_PAGE
+    end_idx = start_idx + ROWS_PER_PAGE
+
+    current_rows = df.iloc[start_idx:end_idx]
+    for idx, row in current_rows.iterrows():
         img_name = row['Image']
         if img_name in image_dict:
             img = Image.open(BytesIO(image_dict[img_name]))
@@ -153,7 +217,8 @@ def generate_pdf(df, project_name):
             new_width = new_height * aspect
             canvas.drawImage(logo_path, 0.2*inch, doc.height + 1.5*inch, width=new_width, height=new_height)
             canvas.setFont("Sarabun-Bold", 30)
-            canvas.drawCentredString(doc.width/2 + 0.5*inch, doc.height + 1.2*inch + 0.25*inch, project_name)
+            # Adjusting the Y position (doc.height + ...) to a smaller value will lower the project name
+            canvas.drawCentredString(doc.width/2 + 0.5*inch, doc.height + 1.0*inch, project_name)
             timestamp = time.strftime("%Y/%m/%d")
             canvas.setFont("Sarabun-Bold", 10)
             canvas.drawRightString(doc.width + inch, doc.height + inch + 0.75*inch, f"Generated on: {timestamp}")
@@ -162,7 +227,7 @@ def generate_pdf(df, project_name):
     output = BytesIO()
     pdf = MyDocTemplate(output, pagesize=A4)
     story = []
-    header_data = ["No.", "Image", "Details"]
+    header_data = ["No.", "Image", "Details", "Note"]
     styles = getSampleStyleSheet()
     normal_style = styles["Normal"]
     normal_style.fontName = 'Sarabun'
@@ -186,6 +251,8 @@ def generate_pdf(df, project_name):
             f"<b>Priority:</b> <l>{row['Usage']}</l>",
             f"<b>Date Found:</b> <l>{row['Date Found']}</l>",
             f"<b>Main Zone:</b> <l>{row['Main Zone']}</l>",
+            f"<b>Sub Zone:</b> <l>{row['Sub Zone']}</l>",
+            f"<b>Level:</b> <l>{row['Level']}</l>",
             f"<b>Description:</b> <l>{row['Description']}</l>",
             f"<b>Issue Type:</b> <l>{row['Issues Type']}</l>",
             f"<b>Issue Status:</b> <l>{row['Issues Status']}</l>",
@@ -195,20 +262,22 @@ def generate_pdf(df, project_name):
             bold_part, light_part = formatted_paragraph(text, styles)
             details_list.append(bold_part)
             details_list.append(light_part)
-
-        if row['Notes']:
-            note_lines = row['Notes'].splitlines()
-            details_list.append(Spacer(1, 0.1*inch))  # Add a spacer before the notes
-            details_list.append(Paragraph(f"<b>Note:</b> {note_lines[0]}", bold_style))
-            for line in note_lines[1:]:
-                details_list.append(Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{line}", normal_style))
-
         details_list.append(Spacer(1, 0.1*inch))
 
-        data.append([str(idx), image_path, details_list])
+       # new code for note column
+        if row['Notes']:
+            note_lines = row['Notes'].splitlines()
+            note_paragraphs = [Paragraph(f"{note_lines[0]}", bold_style)]
+            for line in note_lines[1:]:
+                note_paragraphs.append(Paragraph(f"{line}", normal_style))
+        else:
+            note_paragraphs = [Spacer(1, 0.1*inch)]  # Use a Spacer instead of plain string
+
+        data.append([str(idx), image_path, details_list, note_paragraphs])
+
 
     page_width, page_height = A4 
-    col_widths = [(0.1 * page_width), (0.3 * page_width), (0.4* page_width)]
+    col_widths = [(0.05 * page_width), (0.3 * page_width), (0.3* page_width), (0.3* page_width)]
     table_style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), '#f0ceff'),
         ('TEXTCOLOR', (0, 0), (-1, 0), '#2B2B2B'),

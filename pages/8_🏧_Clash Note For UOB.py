@@ -85,7 +85,7 @@ if 'usage' not in st.session_state:
 if 'due_dates' not in st.session_state:  # Initialize session state for due dates
     st.session_state.due_dates = {}
 
-st.set_page_config(page_title='Clash Issues Note Report For Shark Fin', page_icon=":shark:", layout='centered')
+st.set_page_config(page_title='Clash Issues Note Report For Purple Line Project', page_icon=":atm:", layout='centered')
 css_file = "styles/main.css"
 with open(css_file) as f:
     st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
@@ -277,9 +277,9 @@ def generate_pdf(df, project_name):
 
 
     page_width, page_height = A4 
-    col_widths = [(0.05 * page_width), (0.3 * page_width), (0.3* page_width), (0.3* page_width)]
+    col_widths = [(0.08 * page_width), (0.3 * page_width), (0.3* page_width), (0.3* page_width)]
     table_style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), '#96b7c0'),
+        ('BACKGROUND', (0, 0), (-1, 0), '#e2081d'),
         ('TEXTCOLOR', (0, 0), (-1, 0), '#2B2B2B'),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),

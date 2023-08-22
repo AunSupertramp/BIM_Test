@@ -20,7 +20,7 @@ from bs4 import BeautifulSoup
 
 EXTRACTED_FLAG = False
 
-st.set_page_config(page_title='Clash Issues Report', page_icon=":bookmark_tabs:", layout='centered')
+st.set_page_config(page_title='Clash Issues Report', page_icon=":station:", layout='centered')
 
 css_file = "styles/main.css"
 with open(css_file) as f:
@@ -196,7 +196,8 @@ def main():
     st.table(merged_df_display.head(3))
 
     if st.button("Generate CSV"):
-        csv_data = merged_df.to_csv(index=False)
+        #csv_data = merged_df.to_csv(index=False)
+        csv_data = merged_df_display.to_csv(index=False)
         st.download_button(
             label="Download CSV",
             data=csv_data.encode(),
