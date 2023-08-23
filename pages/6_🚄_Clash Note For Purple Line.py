@@ -128,7 +128,7 @@ if csv_file:
         if value != 'All':
             df = df[df[col] == value]
 
-    usage_options = ['Tracking', 'High Priority', 'Not Used']
+    usage_options = ['Tracking', 'High Priority', 'Not Used','For Reporting']
       # Calculate the number of pages after filtering
     total_rows = len(df)
     total_pages = -(-total_rows // ROWS_PER_PAGE)
@@ -170,6 +170,10 @@ if csv_file:
                 st.session_state.usage[usage_key] = usage
                 if usage == 'Not Used':
                     df.at[idx, 'Issues Status'] = 'Resolved'
+
+                #if df.at[idx, 'Issues Status'] == 'Resolved':
+                    #df.at[idx, 'Usage'] = 'Resolved'
+
 
 
 
@@ -218,10 +222,10 @@ def generate_pdf(df, project_name):
             canvas.drawImage(logo_path, 0.2*inch, doc.height + 1.5*inch, width=new_width, height=new_height)
             canvas.setFont("Sarabun-Bold", 30)
             # Adjusting the Y position (doc.height + ...) to a smaller value will lower the project name
-            canvas.drawCentredString(doc.width/2 + 0.5*inch, doc.height + 1.0*inch, project_name)
+            canvas.drawCentredString(page_width/2, doc.height + 1.0*inch, project_name)
             timestamp = time.strftime("%Y/%m/%d")
             canvas.setFont("Sarabun-Bold", 10)
-            canvas.drawRightString(doc.width + inch, doc.height + inch + 0.75*inch, f"Generated on: {timestamp}")
+            canvas.drawRightString(page_width - 0.2*inch, page_height - 0.2*inch, f"Generated on: {timestamp}")
 
     logo_path = r"./Media/1-Aurecon-logo-colour-RGB-Positive.png"
     output = BytesIO()
@@ -229,14 +233,7 @@ def generate_pdf(df, project_name):
     story = []
     header_data = ["No.", "Image", "Details", "Note"]
     styles = getSampleStyleSheet()
-    normal_style = styles["Normal"]
-    normal_style.fontName = 'Sarabun'
-    normal_style.fontSize = 16
-    normal_style.bold = False
-
-    bold_style = styles["Normal"]
-    bold_style.fontName = 'Sarabun-Bold'
-    bold_style.fontSize = 16
+ 
     data = [header_data]
     for idx, (index, row) in enumerate(df.iterrows(), 1):
         img_name = row['Image']
@@ -248,7 +245,6 @@ def generate_pdf(df, project_name):
         details_list = []
         texts = [
             f"<b>Clash ID:</b> <l>{row['Clash ID']}</l>",
-            f"<b>Priority:</b> <l>{row['Usage']}</l>",
             f"<b>Date Found:</b> <l>{row['Date Found']}</l>",
             f"<b>Main Zone:</b> <l>{row['Main Zone']}</l>",
             f"<b>Sub Zone:</b> <l>{row['Sub Zone']}</l>",
@@ -267,9 +263,10 @@ def generate_pdf(df, project_name):
        # new code for note column
         if row['Notes']:
             note_lines = row['Notes'].splitlines()
-            note_paragraphs = [Paragraph(f"{note_lines[0]}", bold_style)]
+            light_style = ParagraphStyle("LightStyle", parent=styles["Normal"], fontName="Sarabun")
+            note_paragraphs = [Paragraph(f"{note_lines[0]}", style=light_style)]
             for line in note_lines[1:]:
-                note_paragraphs.append(Paragraph(f"{line}", normal_style))
+                note_paragraphs.append(Paragraph(f"{line}", style=light_style))
         else:
             note_paragraphs = [Spacer(1, 0.1*inch)]  # Use a Spacer instead of plain string
 
@@ -280,7 +277,7 @@ def generate_pdf(df, project_name):
     col_widths = [(0.05 * page_width), (0.3 * page_width), (0.3* page_width), (0.3* page_width)]
     table_style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), '#f0ceff'),
-        ('TEXTCOLOR', (0, 0), (-1, 0), '#2B2B2B'),
+        ('TEXTCOLOR', (0, 0), (-1, 0), '#333333'),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('FONTNAME', (0, 0), (-1, 0), 'Sarabun-Bold'),
