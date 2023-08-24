@@ -129,7 +129,7 @@ def generate_pdf(df, project_name):
             canvas.drawImage(logo_path, 0.2*inch, doc.height + 1.5*inch, width=new_width, height=new_height)
 
             canvas.setFont("Sarabun-Bold", 30)
-            canvas.drawCentredString(doc.width/2, doc.height + 1.5*inch, project_name)
+            canvas.drawCentredString(doc.width/2 + 0.5*inch, doc.height + 1.5*inch + 0.25*inch, project_name)
 
             timestamp = time.strftime("%Y/%m/%d %H:%M:%S")
             canvas.setFont("Sarabun-Bold", 10)
