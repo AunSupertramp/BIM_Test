@@ -133,7 +133,7 @@ def generate_pdf(df, project_name):
 
             timestamp = time.strftime("%Y/%m/%d %H:%M:%S")
             canvas.setFont("Sarabun-Bold", 10)
-            canvas.drawRightString(doc.width - 0.01*inch, doc.height + 1.5*inch, f"Generated on: {timestamp}")
+            canvas.drawRightString(doc.width + inch, doc.height + inch + 0.75*inch, f"Generated on: {timestamp}")
 
     logo_path = r"./Media/1-Aurecon-logo-colour-RGB-Positive.png"
 
