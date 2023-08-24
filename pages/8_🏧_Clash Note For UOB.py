@@ -246,8 +246,10 @@ def generate_pdf(df, project_name):
             f"<b>Sub Zone:</b> <l>{row['Sub Zone']}</l>",
             f"<b>Level:</b> <l>{row['Level']}</l>",
             f"<b>Description:</b> <l>{row['Description']}</l>",
+            f"<b>Discipline:</b> <l>{row['Discipline']}</l>",
             f"<b>Issue Type:</b> <l>{row['Issues Type']}</l>",
             f"<b>Issue Status:</b> <l>{row['Issues Status']}</l>",
+            f"<b>Assign To:</b> <l>{row['Assign To']}</l>",
             f"<b>Due Date:</b> <l>{row['Due Date']}</l>"
         ]
         for text in texts:
