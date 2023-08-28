@@ -90,7 +90,7 @@ css_file = "styles/main.css"
 with open(css_file) as f:
     st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
 image_dict = {}
-st.title('Clash Issues Note Report')
+st.title('Clash Issues Note Report for Sharkfin')
 project_name = st.text_input("Please enter the project name", value="")
 csv_file = st.file_uploader("Upload CSV", type=['csv'])
 uploaded_zip = st.file_uploader("Upload Image ZIP", type=['zip'])
@@ -123,14 +123,15 @@ if csv_file:
     for col in filter_cols:
         unique_values = df[col].unique().tolist()
         selected_values[col] = st.sidebar.selectbox(f'Select {col}', ['All'] + unique_values)
-    
+
+    df_view = df.copy()
     for col, value in selected_values.items():
         if value != 'All':
-            df = df[df[col] == value]
+            df_view = df_view[df_view[col] == value]
 
-    usage_options = ['Tracking', 'High Priority', 'Not Used']
+    usage_options = ['Tracking', 'High Priority', 'Not Used','For Reporting']
       # Calculate the number of pages after filtering
-    total_rows = len(df)
+    total_rows = len(df_view)
     total_pages = -(-total_rows // ROWS_PER_PAGE)
     # Only display the slider if there's more than one page
     if total_pages > 1:
@@ -143,7 +144,7 @@ if csv_file:
     start_idx = (selected_page - 1) * ROWS_PER_PAGE
     end_idx = start_idx + ROWS_PER_PAGE
 
-    current_rows = df.iloc[start_idx:end_idx]
+    current_rows = df_view.iloc[start_idx:end_idx]
     for idx, row in current_rows.iterrows():
         img_name = row['Image']
         if img_name in image_dict:
@@ -160,8 +161,11 @@ if csv_file:
                 note_key = f"note_{row['Clash ID']}_{idx}"
                 initial_note = st.session_state.notes.get(note_key, row['Notes'])
                 note = st.text_area(f"Add a note for {row['Clash ID']}", value=initial_note, key=note_key, height=150)
+                # Update Notes in both df_view and df
+                df_view.at[idx, 'Notes'] = note
                 df.at[idx, 'Notes'] = note
                 st.session_state.notes[note_key] = note
+
 
                 usage_key = f"usage_{row['Clash ID']}_{idx}"
                 initial_usage_index = usage_options.index(row['Usage']) if row['Usage'] in usage_options else 0
@@ -169,8 +173,11 @@ if csv_file:
                 df.at[idx, 'Usage'] = usage
                 st.session_state.usage[usage_key] = usage
                 if usage == 'Not Used':
+                    df_view.at[idx, 'Issues Status'] = 'Resolved'
                     df.at[idx, 'Issues Status'] = 'Resolved'
 
+                #if df.at[idx, 'Issues Status'] == 'Resolved':
+                    #df.at[idx, 'Usage'] = 'Resolved'
 
 
                 due_date_key = f"due_date_{row['Clash ID']}_{idx}"
@@ -179,8 +186,10 @@ if csv_file:
                 else:
                     initial_due_date = st.session_state.due_dates[due_date_key]
                 due_date = st.date_input(f"Select due date for {row['Clash ID']}", value=initial_due_date, key=due_date_key)
+
                 if 'Due Date' not in df.columns:
                     df['Due Date'] = None
+                df_view.at[idx, 'Due Date'] = due_date
                 df.at[idx, 'Due Date'] = due_date
                 st.session_state.due_dates[due_date_key] = due_date
             st.markdown("---")
@@ -189,7 +198,7 @@ if csv_file:
 
     if st.button("Export CSV"):
         filename = datetime.datetime.now().strftime("%Y_%m_%d") + "_" + project_name + ".csv"
-        csv_data = df.to_csv(encoding='utf-8-sig', index=False).encode('utf-8-sig')
+        csv_data = df_view.to_csv(encoding='utf-8-sig', index=False).encode('utf-8-sig')
         st.download_button(
             label="Download CSV",
             data=BytesIO(csv_data),
@@ -249,7 +258,6 @@ def generate_pdf(df, project_name):
             f"<b>Discipline:</b> <l>{row['Discipline']}</l>",
             f"<b>Issue Type:</b> <l>{row['Issues Type']}</l>",
             f"<b>Issue Status:</b> <l>{row['Issues Status']}</l>",
-            f"<b>Assign To:</b> <l>{row['Assign To']}</l>",
             f"<b>Due Date:</b> <l>{row['Due Date']}</l>"
         ]
         for text in texts:
@@ -274,7 +282,7 @@ def generate_pdf(df, project_name):
     page_width, page_height = A4 
     col_widths = [(0.05 * page_width), (0.3 * page_width), (0.3* page_width), (0.3* page_width)]
     table_style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), '#1db0f3'),
+        ('BACKGROUND', (0, 0), (-1, 0), '#8EA5AE'),
         ('TEXTCOLOR', (0, 0), (-1, 0), '#333333'),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
@@ -295,7 +303,7 @@ def generate_pdf(df, project_name):
     return output.getvalue()
 
 if st.button("Generate Report"):
-    pdf_data = generate_pdf(df, project_name)
+    pdf_data = generate_pdf(df_view, project_name)
     st.download_button(
         label="Download PDF Report",
         data=pdf_data,

@@ -90,7 +90,7 @@ css_file = "styles/main.css"
 with open(css_file) as f:
     st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
 image_dict = {}
-st.title('Clash Issues Note Report')
+st.title('Clash Issues Note Report For Purple Line')
 project_name = st.text_input("Please enter the project name", value="")
 csv_file = st.file_uploader("Upload CSV", type=['csv'])
 uploaded_zip = st.file_uploader("Upload Image ZIP", type=['zip'])
