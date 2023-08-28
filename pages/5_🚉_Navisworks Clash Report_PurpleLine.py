@@ -167,7 +167,8 @@ def main():
             merged_df = merged_df[desired_order]
 
             if not merged_df.empty:
-                st.table(merged_df.head(10))
+                #st.table(merged_df.head(3))
+                st.write("Merged Complete")
             
         except Exception as e:
             st.write("Error processing files:", str(e))
@@ -192,12 +193,25 @@ def main():
     if "Image" in merged_df.columns:
         merged_df["Image"] = merged_df["Image"].apply(lambda x: image_dict.get(x, "Image not found"))
     
+    if not merged_df.empty and "Issues Status" in merged_df.columns:
+        available_statuses = merged_df["Issues Status"].unique().tolist()
+    else:
+        available_statuses = []
+    selected_statuses = st.multiselect("Select Issues Status for Export:", available_statuses, default=available_statuses)
 
-    st.table(merged_df_display.head(3))
+    if "Issues Status" in merged_df.columns:
+        filtered_df = merged_df[merged_df["Issues Status"].isin(selected_statuses)]
+    else:
+        filtered_df = merged_df
+    if "Issues Status" in merged_df_display.columns:
+        filtered_df_display = merged_df_display[merged_df_display["Issues Status"].isin(selected_statuses)]
+    else:
+        filtered_df_display = merged_df_display
+    st.table(filtered_df_display.head(3))
 
     if st.button("Generate CSV"):
         #csv_data = merged_df.to_csv(index=False)
-        csv_data = merged_df_display.to_csv(index=False)
+        csv_data = filtered_df_display.to_csv(index=False)
         st.download_button(
             label="Download CSV",
             data=csv_data.encode(),
@@ -206,7 +220,7 @@ def main():
         )
 
     if st.button("Generate Report"):
-        pdf_data = generate_pdf(merged_df, project_name)
+        pdf_data = generate_pdf(filtered_df, project_name)
         st.download_button(
             label="Download PDF Report",
             data=pdf_data,
