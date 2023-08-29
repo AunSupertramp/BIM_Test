@@ -64,8 +64,7 @@ def process_html_content(html_content):
         4: "Level",
         5: "Discipline",
         6: "Description",
-        7: "Issues Type",
-        8: "Assign To"
+        7: "Issues Type"
     }
     split_columns = split_columns.rename(columns=renamed_columns)
     expanded_df = pd.concat([filtered_no_asterisk_df, split_columns], axis=1)
@@ -79,7 +78,7 @@ def process_html_content(html_content):
     filtered_date_df['Issues Status'] = ""
 
     desired_order = ["Clash ID", "View Name", "Date Found", "Main Zone", "Sub Zone", "Level", 
-                     "Issues Type", "Issues Status", "Description", "Discipline", "Assign To", "Image"]
+                     "Issues Type", "Issues Status", "Description", "Discipline","Image"]
     
     # Only reorder columns that are present in the DataFrame
     available_columns = [col for col in desired_order if col in filtered_date_df.columns]
@@ -162,7 +161,7 @@ def main():
                 merged_df["Date Found"] = merged_df["Date Found"].apply(adjust_convert_date_format)
 
             desired_order = ["Clash ID", "View Name", "Date Found", "Main Zone", "Sub Zone", "Level", 
-                 "Issues Type", "Issues Status", "Description", "Discipline", "Assign To", "Image"]
+                 "Issues Type", "Issues Status", "Description", "Discipline","Image"]
 
             merged_df = merged_df[desired_order]
 
@@ -296,7 +295,7 @@ def generate_pdf(df, project_name):
 
     header_data = [Paragraph(cell, header_style) for cell in df.columns.tolist()]
     column_order = ["Clash ID", "Image", "View Name", "Date Found", "Main Zone", "Sub Zone", "Level",
-                    "Issues Type", "Issues Status", "Description", "Discipline", "Assign To"]
+                    "Issues Type", "Issues Status", "Description", "Discipline"]
     header_data_reordered = [header_data[df.columns.get_loc(col)] for col in column_order]
     content = []
 
@@ -324,12 +323,12 @@ def generate_pdf(df, project_name):
             Paragraph(str(row["Issues Status"]), cell_style),
             Paragraph(str(row["Description"]), cell_style),
             Paragraph(str(row["Discipline"]), cell_style),
-            Paragraph(str(row["Assign To"]), cell_style),
+            
         ]
         content.append(row_data)
 
     data = [header_data_reordered] + content
-    col_widths = [100, 170, 80, 80, 80, 80, 80, 80, 80, 90, 80, 80]
+    col_widths = [100, 170, 80, 80, 80, 80, 80, 80, 80, 90, 80]
     table = Table(data, colWidths=col_widths, repeatRows=1, style=table_style)
     elems = [Spacer(1, 0.5*inch), table]
     pdf.build(elems)
