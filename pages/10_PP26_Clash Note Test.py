@@ -160,20 +160,19 @@ if csv_file:
                 st.write(f"<b>Issue Status:</b> {row['Issues Status']}", unsafe_allow_html=True)
                 st.write(f"<b>Description:</b> {row['Description']}", unsafe_allow_html=True)
 
+                
                 note_key = f"note_{row['Clash ID']}_{idx}"
                 initial_note = st.session_state.notes.get(note_key, row['Notes'])
                 note = st.text_area(f"Add a note for {row['Clash ID']}", value=initial_note, key=note_key, height=150)
-                # Update Notes in both df_view and df
+
                 df_view.at[idx, 'Notes'] = note
                 df.at[idx, 'Notes'] = note
-                st.session_state.notes[note_key] = note
 
 
                 usage_key = f"usage_{row['Clash ID']}_{idx}"
-                initial_usage_index = usage_options.index(row['Usage']) if row['Usage'] in usage_options else 0
+                initial_usage_index = usage_options.index(st.session_state.usage.get(usage_key, row['Usage'])) if st.session_state.usage.get(usage_key, row['Usage']) in usage_options else 0
                 usage = st.selectbox('Select usage', usage_options, index=initial_usage_index, key=usage_key)
                 df.at[idx, 'Usage'] = usage
-                st.session_state.usage[usage_key] = usage
                 if usage == 'Not Used':
                     df_view.at[idx, 'Issues Status'] = 'Resolved'
                     df.at[idx, 'Issues Status'] = 'Resolved'
@@ -183,17 +182,13 @@ if csv_file:
 
 
                 due_date_key = f"due_date_{row['Clash ID']}_{idx}"
-                if due_date_key not in st.session_state.due_dates:
-                    initial_due_date = datetime.date.today() if pd.isnull(row.get('Due Date')) else pd.to_datetime(row['Due Date']).date()
-                else:
-                    initial_due_date = st.session_state.due_dates[due_date_key]
+                initial_due_date = st.session_state.due_dates.get(due_date_key, datetime.date.today() if pd.isnull(row.get('Due Date')) else pd.to_datetime(row['Due Date']).date())
                 due_date = st.date_input(f"Select due date for {row['Clash ID']}", value=initial_due_date, key=due_date_key)
 
                 if 'Due Date' not in df.columns:
                     df['Due Date'] = None
                 df_view.at[idx, 'Due Date'] = due_date
                 df.at[idx, 'Due Date'] = due_date
-                st.session_state.due_dates[due_date_key] = due_date
             st.markdown("---")
         else:
             st.write("Image not found")
@@ -227,7 +222,7 @@ def generate_pdf(df, project_name):
             new_height = 0.25 * inch
             new_width = new_height * aspect
             canvas.drawImage(logo_path, 0.2*inch, doc.height + 1.5*inch, width=new_width, height=new_height)
-            canvas.setFont("Sarabun-Bold", 30)
+            canvas.setFont("Sarabun-Bold", 26)
             # Adjusting the Y position (doc.height + ...) to a smaller value will lower the project name
             canvas.drawCentredString(page_width/2, doc.height + 1.0*inch, project_name)
             timestamp = time.strftime("%Y/%m/%d")
