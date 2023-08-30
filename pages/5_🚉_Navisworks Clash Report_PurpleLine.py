@@ -52,7 +52,7 @@ def process_html_content(html_content):
 
     df = pd.DataFrame(data, columns=['View Name', 'Image'])
 
-    multiple_underscores_df = df[df['View Name'].str.count('_') > 1]
+    multiple_underscores_df = df[df['View Name'].str.count('_') > 2]
     filtered_no_asterisk_df = multiple_underscores_df[~multiple_underscores_df['View Name'].str.contains('\*')]
     
     split_columns = filtered_no_asterisk_df['View Name'].str.split('_', expand=True)
