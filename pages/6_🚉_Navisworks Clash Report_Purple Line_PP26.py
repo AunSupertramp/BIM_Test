@@ -139,7 +139,7 @@ def extract_images_from_zip(uploaded_zip_file):
     return extracted_images
 
 def main():
-    st.title('Clash Report Generator')
+    st.title('Clash Report Generator (P Pui)')
     project_name = st.text_input("Enter Project Name:")
     merged_df = pd.DataFrame()
     html_file = st.file_uploader("Upload HTML File", type=['html'])
