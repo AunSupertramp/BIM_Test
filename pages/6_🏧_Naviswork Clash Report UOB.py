@@ -211,7 +211,7 @@ def extract_images_from_zip(uploaded_zip_file):
 
     return extracted_images
 # Streamlit App
-st.title('HTML and XML Data Processor')
+st.title('🏧 Naviswork Clash Report UOB')
 
 # Input for project name
 project_name = st.text_input("Project Name", value="")
