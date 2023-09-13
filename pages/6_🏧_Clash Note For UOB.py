@@ -117,7 +117,7 @@ if csv_file:
     
 
     st.sidebar.header("Filter Options")
-    filter_cols = ['Clash ID', 'View Name', 'Main Zone', 'Sub Zone', 'Level', 
+    filter_cols = ['Merge ID', 'View Name', 'Main Zone', 'Sub Zone', 'Level', 
                    'Issues Type', 'Issues Status', 'Discipline', 'Assign To', 'Usage']
     selected_values = {}
     for col in filter_cols:
@@ -154,19 +154,20 @@ if csv_file:
                 st.write(f"<b>{row['View Name']}</b>", unsafe_allow_html=True)
                 st.image(img, use_column_width=True)
             with col2:
+                st.write(f"<b>Merge ID:</b> {row['Merge ID']}", unsafe_allow_html=True)
                 st.write(f"<b>Issue Type:</b> {row['Issues Type']}", unsafe_allow_html=True)
                 st.write(f"<b>Issue Status:</b> {row['Issues Status']}", unsafe_allow_html=True)
                 st.write(f"<b>Description:</b> {row['Description']}", unsafe_allow_html=True)
 
-                note_key = f"note_{row['Clash ID']}_{idx}"
+                note_key = f"note_{row['Merge ID']}_{idx}"
                 initial_note = st.session_state.notes.get(note_key, row['Notes'])
-                note = st.text_area(f"Add a note for {row['Clash ID']}", value=initial_note, key=note_key, height=150)
+                note = st.text_area(f"Add a note for {row['Merge ID']}", value=initial_note, key=note_key, height=150)
 
                 df_view.at[idx, 'Notes'] = note
                 df.at[idx, 'Notes'] = note
 
 
-                usage_key = f"usage_{row['Clash ID']}_{idx}"
+                usage_key = f"usage_{row['Merge ID']}_{idx}"
                 initial_usage_index = usage_options.index(st.session_state.usage.get(usage_key, row['Usage'])) if st.session_state.usage.get(usage_key, row['Usage']) in usage_options else 0
                 usage = st.selectbox('Select usage', usage_options, index=initial_usage_index, key=usage_key)
                 df.at[idx, 'Usage'] = usage
@@ -178,9 +179,9 @@ if csv_file:
                     #df.at[idx, 'Usage'] = 'Resolved'
 
 
-                due_date_key = f"due_date_{row['Clash ID']}_{idx}"
+                due_date_key = f"due_date_{row['Merge ID']}_{idx}"
                 initial_due_date = st.session_state.due_dates.get(due_date_key, datetime.date.today() if pd.isnull(row.get('Due Date')) else pd.to_datetime(row['Due Date']).date())
-                due_date = st.date_input(f"Select due date for {row['Clash ID']}", value=initial_due_date, key=due_date_key)
+                due_date = st.date_input(f"Select due date for {row['Merge ID']}", value=initial_due_date, key=due_date_key)
 
                 if 'Due Date' not in df.columns:
                     df['Due Date'] = None
@@ -243,7 +244,7 @@ def generate_pdf(df, project_name):
 
         details_list = []
         texts = [
-            f"<b>Clash ID:</b> <l>{row['Clash ID']}</l>",
+            f"<b>Clash ID:</b> <l>{row['Merge ID']}</l>",
             f"<b>Date Found:</b> <l>{row['Date Found']}</l>",
             f"<b>Main Zone:</b> <l>{row['Main Zone']}</l>",
             f"<b>Sub Zone:</b> <l>{row['Sub Zone']}</l>",

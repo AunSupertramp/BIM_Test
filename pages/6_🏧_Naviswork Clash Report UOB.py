@@ -252,7 +252,8 @@ if html_file and xml_file:
     merged_df = merged_df.rename(columns={'Issues Status_xml': 'Issues Status', 'View Name_html': 'View Name','Clash ID_html':'Clash ID','Level_html':'Level'})
     merged_df = merged_df[~merged_df['View Name'].str.contains('__', na=False)]
     merged_df['Main Zone'] = main_zone
-    column_order = ["Unique ID","Clash ID", "View Name", "Date Found", "Main Zone", "Sub Zone", "Level", 
+    merged_df['Merge ID'] = merged_df['Clash ID'] + '_' + merged_df['Sub Zone']
+    column_order = ["Merge ID","Unique ID","Clash ID", "View Name", "Date Found", "Main Zone", "Sub Zone", "Level", 
                     "Issues Type", "Issues Status", "Description", "Discipline", "Assign To", "Image"]
     merged_df = merged_df[column_order]
 
