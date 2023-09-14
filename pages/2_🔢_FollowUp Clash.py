@@ -28,7 +28,7 @@ st.set_page_config(page_title='Follow Up Clash', page_icon=":1234:", layout='cen
 css_file = "styles/main.css"
 with open(css_file) as f:
     st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
-st.title('Follow Up Clash')
+st.title('Follow Up Clash Report')
 pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
 pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
 image_dict = {}
@@ -186,7 +186,7 @@ def generate_pdf(df, project_name):
     return output
     
 
-st.title('CSV Transformer')
+
 project_name = st.text_input("Enter Project Name:")
 csv_file = st.file_uploader("Choose a CSV file", type="csv")
 uploaded_zip = st.file_uploader("Upload Image ZIP", type=['zip'])
