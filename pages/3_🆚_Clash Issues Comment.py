@@ -3,7 +3,7 @@ from xml.etree import ElementTree as ET
 import pandas as pd
 from io import BytesIO
 
-st.title('Get Comment on Viewpoint')
+st.title('Get Comments on Viewpoint')
 
 uploaded_file = st.file_uploader("Choose an XML file", type="xml")
 
