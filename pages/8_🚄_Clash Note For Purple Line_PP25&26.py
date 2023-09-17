@@ -199,7 +199,7 @@ if csv_file:
         st.download_button(
             label="Download CSV",
             data=BytesIO(csv_data),
-            file_name=filename,
+            file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_CSV-Note_{project_name}.csv",
             mime="text/csv"
         )
 
@@ -304,6 +304,6 @@ if st.button("Generate Report"):
     st.download_button(
         label="Download PDF Report",
         data=pdf_data,
-        file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_ClashReport_{project_name}.pdf",
+        file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReport_{project_name}.pdf",
         mime="application/pdf"
     )

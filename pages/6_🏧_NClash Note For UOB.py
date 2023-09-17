@@ -192,7 +192,7 @@ if csv_file:
             st.write("Image not found")
 
     if st.button("Export CSV"):
-        filename = datetime.datetime.now().strftime("%Y_%m_%d") + "_" + project_name + ".csv"
+        filename = datetime.datetime.now().strftime("%Y_%m_%d") + "_CSV-Note_" + project_name + ".csv"
         csv_data = df_view.to_csv(encoding='utf-8-sig', index=False).encode('utf-8-sig')
         st.download_button(
             label="Download CSV",
@@ -302,6 +302,6 @@ if st.button("Generate Report"):
     st.download_button(
         label="Download PDF Report",
         data=pdf_data,
-        file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_ClashReport_{project_name}.pdf",
+        file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReport_{project_name}.pdf",
         mime="application/pdf"
     )

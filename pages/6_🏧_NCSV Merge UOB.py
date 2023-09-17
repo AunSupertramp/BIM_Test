@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import time
 
-st.set_page_config(page_title='CSV Combiner', page_icon=":green_book:", layout='centered')
+st.set_page_config(page_title='CSV Merge for UOB', page_icon=":green_book:", layout='centered')
 st.title("CSV Combiner")
 css_file = "styles/main.css"
 with open(css_file) as f:
@@ -37,6 +37,6 @@ if 'result_df' in st.session_state:
         st.download_button(
             label="Download CSV",
             data=csv_data.encode(),
-            file_name=f"{time.strftime('%Y%m%d')}_MergeCSV_{project_name}.csv",
+            file_name=f"{time.strftime('%Y%m%d')}_CSV-MergedWithNote_{project_name}.csv",
             mime="text/csv"
         )

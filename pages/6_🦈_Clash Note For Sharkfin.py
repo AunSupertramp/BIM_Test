@@ -301,6 +301,6 @@ if st.button("Generate Report"):
     st.download_button(
         label="Download PDF Report",
         data=pdf_data,
-        file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_ClashReport_{project_name}.pdf",
+        file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReport_{project_name}.pdf",
         mime="application/pdf"
     )

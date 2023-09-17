@@ -214,7 +214,7 @@ def main():
         st.download_button(
             label="Download CSV",
             data=csv_data.encode(),
-            file_name=f"{project_name}_ClashReport.csv",
+            file_name=f"{time.strftime('%Y%m%d')}_CSV-Naviswork_{project_name}.csv",
             mime="text/csv"
         )
 
@@ -223,7 +223,7 @@ def main():
         st.download_button(
             label="Download PDF Report",
             data=pdf_data,
-            file_name=f"{time.strftime('%Y%m%d')}_ClashReport_{project_name}.pdf",
+            file_name=f"{time.strftime('%Y%m%d')}_PDF-Wide-ClashReport_{project_name}.pdf",
             mime="application/pdf"
         )
        
