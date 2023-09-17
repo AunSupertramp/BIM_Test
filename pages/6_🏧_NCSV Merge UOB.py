@@ -3,7 +3,7 @@ import pandas as pd
 import time
 
 st.set_page_config(page_title='CSV Merge for UOB', page_icon=":green_book:", layout='centered')
-st.title("CSV Combiner")
+st.title("CSV Merge for UOB")
 css_file = "styles/main.css"
 with open(css_file) as f:
     st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
