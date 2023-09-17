@@ -12,13 +12,15 @@ if uploaded_file is not None:
     tree = ET.parse(uploaded_file)
     root = tree.getroot()
 
+    
     # Extract view names and comments
     data = []
     for view in root.findall('.//view'):
         view_name = view.get('name')
-        rltext = view.find('.//rltext/text')
-        comment = rltext.text if rltext is not None else None
-        data.append({'View Name': view_name, 'Comment': comment})
+        comments = view.findall('.//rltext/text')
+        comment_texts = [comment.text for comment in comments if comment.text is not None]
+        combined_comments = "\n".join(comment_texts)
+        data.append({'View Name': view_name, 'Comment': combined_comments})
 
     # Create a DataFrame
     df = pd.DataFrame(data)
