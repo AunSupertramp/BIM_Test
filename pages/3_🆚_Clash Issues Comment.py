@@ -3,6 +3,11 @@ from xml.etree import ElementTree as ET
 import pandas as pd
 from io import BytesIO
 
+
+st.set_page_config(page_title='Get Comments on Viewpoint', page_icon=":vs:", layout='centered')
+css_file = "styles/main.css"
+with open(css_file) as f:
+    st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
 st.title('Get Comments on Viewpoint')
 
 uploaded_file = st.file_uploader("Choose an XML file", type="xml")
