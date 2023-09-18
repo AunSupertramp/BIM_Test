@@ -83,13 +83,13 @@ def generate_pdf(df, project_name):
             aspect = width / height
             new_height = 0.25 * inch
             new_width = new_height * aspect
-
+            
             canvas.drawImage(logo_path, 0.2*inch, doc.height + 1.5*inch, width=new_width, height=new_height)
 
             canvas.setFont("Sarabun-Bold", 30)
-            canvas.drawCentredString(doc.width/2 + 0.5*inch, doc.height + 1.5*inch + 0.25*inch, project_name)
+            canvas.drawCentredString(doc.width/2 + 0.5*inch, doc.height + 1.25*inch + 0.25*inch, project_name)
 
-            timestamp = time.strftime("%Y/%m/%d %H:%M:%S")
+            timestamp = time.strftime("%Y/%m/%d")
             canvas.setFont("Sarabun-Bold", 10)
             canvas.drawRightString(doc.width + inch, doc.height + inch + 0.75*inch, f"Generated on: {timestamp}")
 
@@ -138,14 +138,14 @@ def generate_pdf(df, project_name):
     ]
 
     header_data = [Paragraph(cell, header_style) for cell in df.columns.tolist()]
-    column_order = ["Name", "Designer model", "combine shop model", "Solution", "Note - Solution", "Team", "Date"]
+    column_order = ["ID", "Location", "Name", "Photo", "Check TOC model", "Solution", "Note - Solution", "Status", "Team", "Remark"]
     header_data_reordered = [header_data[df.columns.get_loc(col)] for col in column_order]
     content = []
 
   
     for _, row in df.iterrows():
-        img_name_designer = row['Designer model']
-        img_name_combine_shop = row['combine shop model']
+        img_name_designer = row['Photo']
+        img_name_combine_shop = row['Check TOC model']
         img_name_solution = row['Solution']
 
         img_designer = None
@@ -154,33 +154,37 @@ def generate_pdf(df, project_name):
 
         if img_name_designer != "Image not found" and img_name_designer in image_dict:
             img_data_designer = BytesIO(image_dict[img_name_designer])
-            img_designer = ReportlabImage(img_data_designer, width=2.4*inch, height=2.4*inch)
+            img_designer = ReportlabImage(img_data_designer, width=2*inch, height=2*inch)
 
         if img_name_combine_shop != "Image not found" and img_name_combine_shop in image_dict:
             img_data_combine_shop = BytesIO(image_dict[img_name_combine_shop])
-            img_combine_shop = ReportlabImage(img_data_combine_shop, width=2.4*inch, height=2.4*inch)
+            img_combine_shop = ReportlabImage(img_data_combine_shop, width=2*inch, height=2*inch)
 
         if img_name_solution != "Image not found" and img_name_solution in image_dict:
             img_data_solution = BytesIO(image_dict[img_name_solution])
-            img_solution = ReportlabImage(img_data_solution, width=2.4*inch, height=2.4*inch)
+            img_solution = ReportlabImage(img_data_solution, width=2*inch, height=2*inch)
 
         row_data = [
+            Paragraph(str(row["ID"]), cell_style),
+            Paragraph(str(row["Location"]), cell_style),
             Paragraph(str(row["Name"]), cell_style),
             img_designer,
             img_combine_shop,
             img_solution,
             Paragraph(str(row["Note - Solution"]), cell_style),
+            Paragraph(str(row["Status"]), cell_style),
             Paragraph(str(row["Team"]), cell_style),
-            Paragraph(str(row["Date"]), cell_style),
+            Paragraph(str(row["Remark"]), cell_style),
         ]
         content.append(row_data)
 
 
     data = [header_data_reordered] + content
-    col_widths = [100, 200, 200, 200, 80, 80, 80, 80]
+    col_widths = [50, 100, 150, 150, 150, 150, 150, 80, 80, 80]
     #1 point = 1/72 of an inch
     table = Table(data, colWidths=col_widths, repeatRows=1, style=table_style)
-    elems = [Spacer(1, 0.5*inch), table]
+    #elems = [Spacer(1, 0.5*inch), table]
+    elems = [table]
     pdf.build(elems)
     output.seek(0)
     return output
@@ -200,20 +204,20 @@ if uploaded_zip:
 
 if csv_file and uploaded_zip:
     data = pd.read_csv(csv_file)
-    data['Designer model'] = data['Designer model'].apply(extract_file_name)
-    data['combine shop model'] = data['combine shop model'].apply(extract_file_name)
+    data.fillna("", inplace=True)
+    data['Photo'] = data['Photo'].apply(extract_file_name)
+    data['Check TOC model'] = data['Check TOC model'].apply(extract_file_name)
     data['Solution'] = data['Solution'].apply(extract_file_name)
     st.write(data.head(10))
 
 
 
     if st.button("Generate CSV"):
-        filename = "transformed_data.csv"
         csv_data = data.to_csv(encoding='utf-8-sig', index=False).encode('utf-8-sig')
         st.download_button(
             label="Download CSV",
             data=BytesIO(csv_data),
-            file_name=filename,
+            file_name=f"{time.strftime('%Y%m%d')}_Design-Coordination_Tracking-Report_{project_name}.csv",
             mime="text/csv"
         )
 
@@ -222,7 +226,7 @@ if csv_file and uploaded_zip:
         st.download_button(
             label="Download PDF Report",
             data=df_data,
-            file_name=f"{time.strftime('%Y%m%d')}_ClashReport_{project_name}.pdf",
+            file_name=f"{time.strftime('%Y%m%d')}_Design-Coordination_Tracking-Report_{project_name}.pdf",
                 mime="application/pdf"
             )
 
