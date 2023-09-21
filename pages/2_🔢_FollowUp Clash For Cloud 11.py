@@ -192,7 +192,7 @@ def generate_pdf(df, project_name):
     
 
 
-project_name = st.text_input("Enter Project Name:")
+project_name = st.text_input("Enter Project Name:", value='Cloud 11')
 csv_file = st.file_uploader("Choose a CSV file", type="csv")
 uploaded_zip = st.file_uploader("Upload Image ZIP", type=['zip'])
 if uploaded_zip:
