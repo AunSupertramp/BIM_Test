@@ -59,7 +59,9 @@ def extract_images_from_zip(uploaded_zip_file):
     
 def extract_file_name(url):
     if isinstance(url, str):
-        url_decoded = unquote(url)
+        # Split the string by comma to handle multiple URLs and take the first one
+        first_url = url.split(',')[0]
+        url_decoded = unquote(first_url)
         # Replace underscores with spaces in the file name
         file_name = url_decoded.split('/')[-1].replace('_', ' ')
         return file_name
@@ -201,7 +203,6 @@ if uploaded_zip:
 
 
 
-
 if csv_file and uploaded_zip:
     data = pd.read_csv(csv_file)
     data.fillna("", inplace=True)
@@ -209,7 +210,6 @@ if csv_file and uploaded_zip:
     data['Check TOC model'] = data['Check TOC model'].apply(extract_file_name)
     data['Solution'] = data['Solution'].apply(extract_file_name)
     st.write(data.head(10))
-
 
 
     if st.button("Generate CSV"):
