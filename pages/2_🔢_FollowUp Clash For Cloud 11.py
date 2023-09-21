@@ -208,6 +208,24 @@ if csv_file and uploaded_zip:
     data['Photo'] = data['Photo'].apply(extract_file_name)
     data['Check TOC model'] = data['Check TOC model'].apply(extract_file_name)
     data['Solution'] = data['Solution'].apply(extract_file_name)
+
+    unique_locations = data['Location'].unique().tolist()
+    selected_locations = st.multiselect("Select Location(s):", unique_locations, default=unique_locations)
+    
+    unique_statuses = data['Status'].unique().tolist()
+    selected_statuses = st.multiselect("Select Status(es):", unique_statuses, default=unique_statuses)
+    
+    unique_teams = data['Team'].unique().tolist()
+    selected_teams = st.multiselect("Select Team(s):", unique_teams, default=unique_teams)
+    
+    # Filter the DataFrame based on selected values
+    if selected_locations:
+        data = data[data['Location'].isin(selected_locations)]
+    if selected_statuses:
+        data = data[data['Status'].isin(selected_statuses)]
+    if selected_teams:
+        data = data[data['Team'].isin(selected_teams)]
+    
     st.write(data.head(10))
 
 
