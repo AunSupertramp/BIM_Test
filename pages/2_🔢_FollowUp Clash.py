@@ -24,11 +24,11 @@ import tempfile
 from bs4 import BeautifulSoup
 EXTRACTED_FLAG = False
 # Set up the page
-st.set_page_config(page_title='Follow Up Clash', page_icon=":1234:", layout='centered')
+st.set_page_config(page_title='Follow Up Clash For Cloud 11', page_icon=":1234:", layout='centered')
 css_file = "styles/main.css"
 with open(css_file) as f:
     st.markdown("<style>{}</style>".format(f.read()), unsafe_allow_html=True)
-st.title('Follow Up Clash Report')
+st.title('Follow Up Clash Report For Cloud 11')
 pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
 pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
 image_dict = {}
@@ -56,7 +56,6 @@ def extract_images_from_zip(uploaded_zip_file):
 
     return extracted_images
 
-    
 def extract_file_name(url):
     if isinstance(url, str):
         # Split the string by comma to handle multiple URLs and take the first one
