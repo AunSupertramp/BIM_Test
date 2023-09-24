@@ -194,7 +194,6 @@ if csv_file:
             st.write("Image not found")
 
     if st.button("Export CSV"):
-        filename = datetime.datetime.now().strftime("%Y_%m_%d") + "_" + project_name + ".csv"
         csv_data = df_view.to_csv(encoding='utf-8-sig', index=False).encode('utf-8-sig')
         st.download_button(
             label="Download CSV",
