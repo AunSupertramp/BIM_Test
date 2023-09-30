@@ -384,7 +384,7 @@ def generate_pdf2(df, project_name):
     story.append(table)
     pdf.build(story)
     return output.getvalue()
-st.title('Clash Report Generator (P Pui)')
+st.title('Clash Report & Note (P Pui)')
 project_name = st.text_input("Enter Project Name:")
 merged_df = pd.DataFrame()
 df_view = pd.DataFrame() 
@@ -435,10 +435,13 @@ for uploaded_file in uploaded_files:
     else:
         st.write(f"Unsupported file type: {file_type}")
 
+
+
 # Replace the "Image" column with the filenames for display in Streamlit table
 merged_df_display = merged_df.copy()
 # Replace the "Image" column with the actual image objects for processing
 if "Image" in merged_df.columns:
+    merged_df["ImageName"]=merged_df["Image"]
     merged_df["Image"] = merged_df["Image"].apply(lambda x: image_dict.get(x, "Image not found"))
     
 if not merged_df.empty and "Issues Status" in merged_df.columns:
@@ -456,7 +459,7 @@ if "Issues Status" in merged_df_display.columns:
 else:
     filtered_df_display = merged_df_display
 st.table(filtered_df_display.head(10))
-#st.write(image_dict) 
+st.write(image_dict) 
 
 if st.button("Generate CSV"):
     #csv_data = merged_df.to_csv(index=False)
@@ -479,7 +482,7 @@ if st.button("Generate Report"):
        
 
         
-ROWS_PER_PAGE = 10
+
 
 
 if 'notes' not in st.session_state:
@@ -524,7 +527,26 @@ if not merged_df.empty and uploaded_files:
     usage_options = ['Tracking', 'High Priority', 'Not Used','For Reporting']
       # Calculate the number of pages after filtering
 
-for idx, row in df_view.iterrows():
+
+ROWS_PER_PAGE = 10
+
+total_rows = len(df_view)
+total_pages = -(-total_rows // ROWS_PER_PAGE)  # Ceiling division
+
+# Only display the slider if there's more than one page
+if total_pages > 1:
+    selected_page = st.slider('Select a page:', 1, total_pages)
+else:
+    selected_page = 1
+
+# Filter the dataframe based on the selected page
+start_idx = (selected_page - 1) * ROWS_PER_PAGE
+end_idx = start_idx + ROWS_PER_PAGE
+
+current_rows = df_view.iloc[start_idx:end_idx]
+
+
+for idx, row in current_rows.iterrows():
         
     col1, col2 = st.columns([3, 3])
     
@@ -561,7 +583,7 @@ for idx, row in df_view.iterrows():
         df_view.at[idx, 'Due Date'] = due_date
         df.at[idx, 'Due Date'] = due_date
     st.markdown("---")
-
+    
 if st.button("Export CSV"):
     csv_data = df_view.to_csv(encoding='utf-8-sig', index=False).encode('utf-8-sig')
     st.download_button(
