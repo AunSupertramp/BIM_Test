@@ -39,17 +39,18 @@ with open(css_file) as f:
 pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
 pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
 
+
 def adjust_convert_date_format(date_str):
-    # Check if the date is already in 'YYYY-MM-DD' format
     if len(date_str) == 10 and date_str[4] == '-' and date_str[7] == '-':
         return date_str
-    # Adjusted function to handle the date format 'YYMMDD'
     try:
-        formatted_date = "20" + date_str[:2] + "-" + date_str[2:4] + "-" + date_str[4:6]
-        return formatted_date  # We already have it in 'YYYY-MM-DD' format, so no need for extra conversion
+        formatted_date = date_str[:4] + "-" + date_str[4:6] + "-" + date_str[6:]
+        return formatted_date
     except:
         return None
 
+
+# Function to process HTML content
 def process_html_content(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
     h2_tags = soup.find_all('h2')
@@ -57,107 +58,43 @@ def process_html_content(html_content):
 
     for h2 in h2_tags:
         img = h2.find_next('img')
-        img_src = img['src'].split('/')[-1] if img else None  # Extract just the filename from the src
+        img_src = img['src'].split('/')[-1] if img else None
         data.append((h2.text.strip(), img_src))
 
     df = pd.DataFrame(data, columns=['View Name', 'Image'])
+    df = df[df['View Name'].str.count('_') >= 2]
+    view_name_components = df['View Name'].str.split('_', expand=True)
+    df['Clash ID'] = view_name_components[0]
+    df['Level'] = view_name_components[1]
+    df['Date Found'] = view_name_components[2]
+    df['Discipline'] = view_name_components[3]
+    df['Description'] = view_name_components[4]
+    df['Unique ID'] = df['Clash ID'] + '_' + df['Level']
+    df['Date Found'] = df['Date Found'].apply(adjust_convert_date_format)
+    df['Issues Status'] = ""
 
-    multiple_underscores_df = df[df['View Name'].str.count('_') > 2]
-    filtered_no_asterisk_df = multiple_underscores_df[~multiple_underscores_df['View Name'].str.contains('\*')]
-    
-    split_columns = filtered_no_asterisk_df['View Name'].str.split('_', expand=True)
-    renamed_columns = {
-        0: "Clash ID",
-        1: "Date Found",
-        2: "Main Zone",
-        3: "Sub Zone",
-        4: "Level",
-        5: "Discipline",
-        6: "Description",
-        7: "Issues Type"
-    }
-    split_columns = split_columns.rename(columns=renamed_columns)
-    expanded_df = pd.concat([filtered_no_asterisk_df, split_columns], axis=1)
+    return df
 
-    if 'Date Found' in expanded_df.columns:
-        expanded_df['Formatted Date'] = expanded_df['Date Found'].apply(adjust_convert_date_format)
-    else:
-        expanded_df['Formatted Date'] = None
+# Function to extract view details with levels from XML content
+def extract_view_details_with_levels(root):
+    stack = [(root, [], None)]
+    results = []
 
-    filtered_date_df = expanded_df.dropna(subset=['Formatted Date'])
-    filtered_date_df['Issues Status'] = ""
-
-    desired_order = ["Clash ID", "View Name", "Date Found", "Main Zone", "Sub Zone", "Level", 
-                     "Issues Type", "Issues Status", "Description", "Discipline","Image"]
-    
-    # Only reorder columns that are present in the DataFrame
-    available_columns = [col for col in desired_order if col in filtered_date_df.columns]
-    reordered_df = filtered_date_df[available_columns]
-
-    return reordered_df
-
-
-def process_xml_content(xml_content):
-    root = ET.fromstring(xml_content)
-    def extract_view_details(element):
-        results = []
-        current_folder_name = element.attrib.get('name', None)
-        for child in element:
-            if child.tag == 'viewfolder':
-                results.extend(extract_view_details(child))
-            elif child.tag == 'view':
-                view_name = child.attrib.get('name', None)
-                results.append((view_name, current_folder_name))
-        return results
-
-    view_details = extract_view_details(root.find('viewpoints'))
-    df_views = pd.DataFrame(view_details, columns=["View Name", "Issues Status"])
-    desired_folders = ["01_Resolved", "02_Unresolved", "03_For Tracking", "04_New Issues"]
-    filtered_df = df_views[df_views["Issues Status"].isin(desired_folders)]
-    status_mapping = {
-        "01_Resolved": "Resolved",
-        "02_Unresolved": "Unresolved",
-        "03_For Tracking": "For Tracking",
-        "04_New Issues": "New"
-    }
-    filtered_df["Issues Status"] = filtered_df["Issues Status"].replace(status_mapping)
-    filtered_df = filtered_df[["View Name", "Issues Status"]]
-    return filtered_df
-    
-
-def extract_images_from_zip(uploaded_zip_file):
-    extracted_images = []
-    
-    # Create a temporary directory to extract files into
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        # Save the uploaded file to a temporary file
-        temp_zip_path = os.path.join(tmpdirname, 'temp.zip')
-        with open(temp_zip_path, 'wb') as f:
-            f.write(uploaded_zip_file.getvalue())
+    while stack:
+        element, folder_names, parent_name = stack.pop()
+        current_folder_name = element.attrib.get('name', parent_name)
         
-        # Extract the zip file
-        shutil.unpack_archive(temp_zip_path, tmpdirname)
-
-        # Walk through the extracted files and pick up images
-        for subdir, _, files in os.walk(tmpdirname):
-            for file in files:
-                if file.lower().endswith(('.jpg', '.jpeg', '.png')):
-                    file_path = os.path.join(subdir, file)
-                    with open(file_path, 'rb') as f:
-                        extracted_images.append((file, f.read()))
-
-    return extracted_images
-
-DATE_FORMATS = ["%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"]
-def try_parsing_date(text):
-    for fmt in DATE_FORMATS:
-        try:
-            return pd.to_datetime(text, format=fmt).strftime("%m/%d/%Y")
-        except ValueError:
-            pass
-    # If all formats fail, return the original string
-    return text
-
+        if element.tag == 'view':
+            view_name = element.attrib.get('name', None)
+            issues_type = folder_names[-4] if len(folder_names) >= 4 else None
+            issues_status = folder_names[-3] if len(folder_names) >= 3 else None
+            assign_to = folder_names[-2] if len(folder_names) >= 2 else None
+            sub_zone = folder_names[-1] if folder_names else None
+            results.append((view_name, sub_zone, assign_to, issues_status, issues_type))
+        else:
+            stack.extend([(child, folder_names + [current_folder_name], current_folder_name) for child in element])
+    
+    return results
 
 def generate_pdf(df, project_name):
     class MyDocTemplate(BaseDocTemplate):
@@ -211,7 +148,7 @@ def generate_pdf(df, project_name):
     )
 
     table_style = [
-        ('BACKGROUND', (0, 0), (-1, 0), colors.purple),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.blue),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('BACKGROUND', (0, 1), (-1, -1), colors.white),
@@ -225,7 +162,7 @@ def generate_pdf(df, project_name):
 
     header_data = [Paragraph(cell, header_style) for cell in df.columns.tolist()]
     column_order = ["Clash ID", "Image", "View Name", "Date Found", "Main Zone", "Sub Zone", "Level",
-                    "Issues Type", "Issues Status", "Description", "Discipline"]
+                    "Issues Type", "Issues Status", "Description", "Discipline", "Assign To"]
     header_data_reordered = [header_data[df.columns.get_loc(col)] for col in column_order]
     content = []
 
@@ -235,8 +172,8 @@ def generate_pdf(df, project_name):
             if isinstance(img_data, BytesIO):  # If it's already a BytesIO object
                 image_stream = img_data
             else:
-                image_stream = BytesIO(img_data.getvalue())
-            img_data.seek(0)  # Reset the file pointer
+                image_stream = image_dict.get(img_data, BytesIO(b"Image not found"))
+            image_stream.seek(0)  # Reset the file pointer
             img = Image(image_stream, width=150, height=150)
         else:
             img = 'Image not found'
@@ -253,17 +190,57 @@ def generate_pdf(df, project_name):
             Paragraph(str(row["Issues Status"]), cell_style),
             Paragraph(str(row["Description"]), cell_style),
             Paragraph(str(row["Discipline"]), cell_style),
+            Paragraph(str(row["Assign To"]), cell_style),
             
         ]
         content.append(row_data)
 
     data = [header_data_reordered] + content
-    col_widths = [100, 170, 80, 80, 80, 80, 80, 80, 80, 90, 80]
+    col_widths = [100, 170, 80, 80, 80, 80, 80, 80, 80, 90, 80, 80]
     table = Table(data, colWidths=col_widths, repeatRows=1, style=table_style)
     elems = [table]
     pdf.build(elems)
     output.seek(0)
     return output
+
+
+    
+
+def extract_images_from_zip(uploaded_zip_file):
+    extracted_images = []
+    
+    # Create a temporary directory to extract files into
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        # Save the uploaded file to a temporary file
+        temp_zip_path = os.path.join(tmpdirname, 'temp.zip')
+        with open(temp_zip_path, 'wb') as f:
+            f.write(uploaded_zip_file.getvalue())
+        
+        # Extract the zip file
+        shutil.unpack_archive(temp_zip_path, tmpdirname)
+
+        # Walk through the extracted files and pick up images
+        for subdir, _, files in os.walk(tmpdirname):
+            for file in files:
+                if file.lower().endswith(('.jpg', '.jpeg', '.png')):
+                    file_path = os.path.join(subdir, file)
+                    with open(file_path, 'rb') as f:
+                        extracted_images.append((file, f.read()))
+
+    return extracted_images
+
+DATE_FORMATS = ["%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"]
+def try_parsing_date(text):
+    for fmt in DATE_FORMATS:
+        try:
+            return pd.to_datetime(text, format=fmt).strftime("%m/%d/%Y")
+        except ValueError:
+            pass
+    # If all formats fail, return the original string
+    return text
+
+
+
 
 pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
 pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
@@ -332,7 +309,7 @@ def generate_pdf2(df, project_name):
 
         details_list = []
         texts = [
-            f"<b>Clash ID:</b> <l>{row['Clash ID']}</l>",
+            f"<b>Clash ID:</b> <l>{row['Merge ID']}</l>",
             f"<b>Date Found:</b> <l>{row['Date Found']}</l>",
             f"<b>Main Zone:</b> <l>{row['Main Zone']}</l>",
             f"<b>Sub Zone:</b> <l>{row['Sub Zone']}</l>",
@@ -365,8 +342,8 @@ def generate_pdf2(df, project_name):
     page_width, page_height = A4 
     col_widths = [(0.05 * page_width), (0.3 * page_width), (0.3* page_width), (0.3* page_width)]
     table_style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), '#f0ceff'),
-        ('TEXTCOLOR', (0, 0), (-1, 0), '#333333'),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.blue),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('FONTNAME', (0, 0), (-1, 0), 'Sarabun-Bold'),
@@ -385,46 +362,21 @@ def generate_pdf2(df, project_name):
     pdf.build(story)
     return output.getvalue()
 
-st.title('Clash Report & Note (P Pui)')
+
+
+
+
+
+st.title('Clash Report & Note (P Bowling)')
 project_name = st.text_input("Enter Project Name:")
+main_zone = st.text_input("Main Zone", value="")
 selected_option = st.radio("Select a process:", ["Option 1: Display without merging", "Option 2: Display with merging"])
 merged_df = pd.DataFrame()
 df_view = pd.DataFrame() 
 html_file = st.file_uploader("Upload HTML File", type=['html'])
 xml_file = st.file_uploader("Upload XML File", type=['xml'])
-    
-if html_file and xml_file:  # Check that both files are uploaded
-    try:
-        html_content = html_file.read().decode('utf-8')
-        df_html = process_html_content(html_content)
-        
-        xml_content = xml_file.read().decode('utf-8')
-        df_xml = process_xml_content(xml_content)
-        
-        # Merge on "View Name"
-        merged_df = pd.merge(df_html.drop(columns="Issues Status"), df_xml, on="View Name", how="left")
-
-        # Apply the date formatting function to the entire "Date Found" column of merged_df
-        if "Date Found" in merged_df.columns:
-            merged_df["Date Found"] = merged_df["Date Found"].apply(adjust_convert_date_format)
-
-        desired_order = ["Clash ID", "View Name", "Date Found", "Main Zone", "Sub Zone", "Level", 
-            "Issues Type", "Issues Status", "Description", "Discipline","Image"]
-
-        merged_df = merged_df[desired_order]
-
-        if not merged_df.empty:
-            #st.table(merged_df.head(3))
-            st.write("Merged Complete")
-            
-    except Exception as e:
-        st.write("Error processing files:", str(e))
-
 uploaded_files = st.file_uploader("Upload Images or ZIP of Images", type=['jpg', 'jpeg', 'png', 'zip', 'application/x-zip-compressed'], accept_multiple_files=True)
-
 image_dict = {}
-image_dict_display = {} 
-
 
 for uploaded_file in uploaded_files:
     file_type = uploaded_file.type
@@ -439,49 +391,78 @@ for uploaded_file in uploaded_files:
 
 
 
+if html_file and xml_file:
+    html_content = html_file.read().decode('utf-8')
+    html_df = process_html_content(html_content)
+
+    tree = ET.parse(xml_file)
+    root = tree.getroot()
+    view_details_with_levels = extract_view_details_with_levels(root)
+    xml_df = pd.DataFrame(view_details_with_levels, columns=['View Name', 'Sub Zone', 'Assign To', 'Issues Status', 'Issues Type'])
+
+    xml_df['Clash ID'] = xml_df['View Name'].str.split('_').str[0]
+    xml_df['Level'] = xml_df['View Name'].str.split('_').str[1]
+    xml_df['Unique ID'] = xml_df['Clash ID'] + '_' + xml_df['Level']
+
+    merged_df = pd.merge(html_df, xml_df, on='Unique ID', how='inner', suffixes=('_html', '_xml'))
+    merged_df = merged_df.drop(columns=['Clash ID_xml', 'Level_xml'])
+    merged_df = merged_df.rename(columns={'Issues Status_xml': 'Issues Status', 'View Name_html': 'View Name','Clash ID_html':'Clash ID','Level_html':'Level'})
+    merged_df = merged_df[~merged_df['View Name'].str.contains('__', na=False)]
+    merged_df['Main Zone'] = main_zone
+    merged_df['Merge ID'] = merged_df['Clash ID'] + '_' + merged_df['Sub Zone']
+    column_order = ["Merge ID","Unique ID","Clash ID", "View Name", "Date Found", "Main Zone", "Sub Zone", "Level", 
+                    "Issues Type", "Issues Status", "Description", "Discipline", "Assign To", "Image"]
+    merged_df = merged_df[column_order]
+
+    if not merged_df.empty and "Issues Status" in merged_df.columns:
+        available_statuses = merged_df["Issues Status"].unique().tolist()
+    else:
+        available_statuses = []
+    selected_statuses = st.multiselect("Select Issues Status for Export:", available_statuses, default=available_statuses)
+    
+    if "Issues Status" in merged_df.columns:
+        filtered_df = merged_df[merged_df["Issues Status"].isin(selected_statuses)]
+    else:
+        filtered_df = merged_df
+
+    if "Issues Status" in filtered_df.columns:
+        filtered_df_display = filtered_df[filtered_df["Issues Status"].isin(selected_statuses)]
+    else:
+        filtered_df_display = filtered_df
+    
+    st.table(filtered_df_display.head(3))
+
+    if st.button("Generate CSV"):
+        csv_data = filtered_df.to_csv(index=False, encoding='utf-8-sig')
+        st.download_button(
+            label="Download CSV",
+            data=csv_data.encode(),
+            file_name=f"{time.strftime('%Y%m%d')}_CSV-Naviswork_{project_name}.csv",
+            mime="text/csv"
+        )
+    if st.button("Generate Report"):
+        pdf_data = generate_pdf(filtered_df, project_name)
+        st.download_button(
+            label="Download PDF Report",
+            data=pdf_data,
+            file_name=f"{time.strftime('%Y%m%d')}_PDF-Wide-ClashReport_{project_name}.pdf",
+            mime="application/pdf"
+        )
+else:
+    st.write("Please upload both HTML and XML files to proceed.")
+       
+
+
 # Replace the "Image" column with the filenames for display in Streamlit table
 merged_df_display = merged_df.copy()
 # Replace the "Image" column with the actual image objects for processing
 if "Image" in merged_df.columns:
     merged_df["ImageName"]=merged_df["Image"]
     merged_df["Image"] = merged_df["Image"].apply(lambda x: image_dict.get(x, "Image not found"))
-    
-if not merged_df.empty and "Issues Status" in merged_df.columns:
-    available_statuses = merged_df["Issues Status"].unique().tolist()
-else:
-    available_statuses = []
-selected_statuses = st.multiselect("Select Issues Status for Export:", available_statuses, default=available_statuses)
-
-if "Issues Status" in merged_df.columns:
-    filtered_df = merged_df[merged_df["Issues Status"].isin(selected_statuses)]
-else:
-    filtered_df = merged_df
-if "Issues Status" in merged_df_display.columns:
-    filtered_df_display = merged_df_display[merged_df_display["Issues Status"].isin(selected_statuses)]
-else:
-    filtered_df_display = merged_df_display
-st.table(filtered_df_display.head(3))
 
 
-if st.button("Generate CSV"):
-    #csv_data = merged_df.to_csv(index=False)
-    csv_data = filtered_df_display.to_csv(index=False, encoding='utf-8-sig')
-    st.download_button(
-        label="Download CSV",
-        data=csv_data.encode(),
-        file_name=f"{time.strftime('%Y%m%d')}_CSV-Naviswork_{project_name}.csv",
-        mime="text/csv"
-        )
 
-if st.button("Generate Report"):
-    pdf_data = generate_pdf(filtered_df, project_name)
-    st.download_button(
-        label="Download PDF Report",
-        data=pdf_data,
-        file_name=f"{time.strftime('%Y%m%d')}_PDF-Wide-ClashReport_{project_name}.pdf",
-        mime="application/pdf"
-        )
-       
+
 
 
 if 'notes' not in st.session_state:
@@ -497,7 +478,6 @@ if selected_option == "Option 1: Display without merging":
     if not merged_df.empty and uploaded_files:
         if 'df' not in st.session_state:
             st.session_state.df = merged_df.copy()
-            
         df = st.session_state.df
         if 'Notes' not in df.columns:
             df['Notes'] = ""
@@ -528,63 +508,65 @@ if selected_option == "Option 1: Display without merging":
         usage_options = ['Tracking', 'High Priority', 'Not Used','For Reporting']
         # Calculate the number of pages after filtering
 
+        ROWS_PER_PAGE = 10
 
-    ROWS_PER_PAGE = 10
+        total_rows = len(df_view)
+        total_pages = -(-total_rows // ROWS_PER_PAGE)
+        # Only display the slider if there's more than one page
+        if total_pages > 1:
+            selected_page = st.slider('Select a page:', 1, total_pages)
+        else:
+            selected_page = 1  # This is a ceiling division
 
-    total_rows = len(df_view)
-    total_pages = -(-total_rows // ROWS_PER_PAGE)  # Ceiling division
-
-    # Only display the slider if there's more than one page
-    if total_pages > 1:
-        selected_page = st.slider('Select a page:', 1, total_pages)
-    else:
-        selected_page = 1
-
-    # Filter the dataframe based on the selected page
-    start_idx = (selected_page - 1) * ROWS_PER_PAGE
-    end_idx = start_idx + ROWS_PER_PAGE
-
-    current_rows = df_view.iloc[start_idx:end_idx]
-
-
-    for idx, row in current_rows.iterrows():
-            
-        col1, col2 = st.columns([3, 3])
         
-        with col1:
-            st.write(f"<b>{row['View Name']}</b>", unsafe_allow_html=True)
-            st.image(row['Image'], use_column_width=True)
+        # Filter the dataframe based on the selected page
+        start_idx = (selected_page - 1) * ROWS_PER_PAGE
+        end_idx = start_idx + ROWS_PER_PAGE
+
+        current_rows = df_view.iloc[start_idx:end_idx]
+        for idx, row in current_rows.iterrows():
         
-        with col2:
-            st.write(f"<b>Issue Type:</b> {row['Issues Type']}", unsafe_allow_html=True)
-            st.write(f"<b>Issue Status:</b> {row['Issues Status']}", unsafe_allow_html=True)
-            st.write(f"<b>Description:</b> {row['Description']}", unsafe_allow_html=True)
-            note_key = f"note_{row['Clash ID']}_{idx}"
-            initial_note = st.session_state.notes.get(note_key, row['Notes'])
-            note = st.text_area(f"Add a note for {row['Clash ID']}", value=initial_note, key=note_key, height=150)
-            df_view.at[idx, 'Notes'] = note
-            df.at[idx, 'Notes'] = note
-            usage_key = f"usage_{row['Clash ID']}_{idx}"
-            initial_usage_index = usage_options.index(st.session_state.usage.get(usage_key, row['Usage'])) if st.session_state.usage.get(usage_key, row['Usage']) in usage_options else 0
-            usage = st.selectbox('Select usage', usage_options, index=initial_usage_index, key=usage_key)
-            df.at[idx, 'Usage'] = usage
-            #if usage == 'Not Used':
-                #df_view.at[idx, 'Issues Status'] = 'Resolved'
-                #df.at[idx, 'Issues Status'] = 'Resolved'
+            col1, col2 = st.columns([3, 3])
+            with col1:
+                st.write(f"<b>{row['View Name']}</b>", unsafe_allow_html=True)
+                st.image(row['Image'], use_column_width=True)
+            with col2:
+                st.write(f"<b>Issue Type:</b> {row['Issues Type']}", unsafe_allow_html=True)
+                st.write(f"<b>Issue Status:</b> {row['Issues Status']}", unsafe_allow_html=True)
+                st.write(f"<b>Description:</b> {row['Description']}", unsafe_allow_html=True)
+
+                    
+                note_key = f"note_{row['Clash ID']}_{idx}"
+                initial_note = st.session_state.notes.get(note_key, row['Notes'])
+                note = st.text_area(f"Add a note for {row['Clash ID']}", value=initial_note, key=note_key, height=150)
+
+                df_view.at[idx, 'Notes'] = note
+                df.at[idx, 'Notes'] = note
 
 
+                usage_key = f"usage_{row['Clash ID']}_{idx}"
+                initial_usage_index = usage_options.index(st.session_state.usage.get(usage_key, row['Usage'])) if st.session_state.usage.get(usage_key, row['Usage']) in usage_options else 0
+                usage = st.selectbox('Select usage', usage_options, index=initial_usage_index, key=usage_key)
+                df.at[idx, 'Usage'] = usage
+                if usage == 'Not Used':
+                    df_view.at[idx, 'Issues Status'] = 'Resolved'
+                    df.at[idx, 'Issues Status'] = 'Resolved'
+
+                #if df.at[idx, 'Issues Status'] == 'Resolved':
+                    #df.at[idx, 'Usage'] = 'Resolved'
 
 
-            due_date_key = f"due_date_{row['Clash ID']}_{idx}"
-            initial_due_date = st.session_state.due_dates.get(due_date_key, datetime.date.today() if pd.isnull(row.get('Due Date')) else pd.to_datetime(row['Due Date']).date())
-            due_date = st.date_input(f"Select due date for {row['Clash ID']}", value=initial_due_date, key=due_date_key)
+                due_date_key = f"due_date_{row['Clash ID']}_{idx}"
+                initial_due_date = st.session_state.due_dates.get(due_date_key, datetime.date.today() if pd.isnull(row.get('Due Date')) else pd.to_datetime(row['Due Date']).date())
+                due_date = st.date_input(f"Select due date for {row['Clash ID']}", value=initial_due_date, key=due_date_key)
 
-            if 'Due Date' not in df.columns:
-                df['Due Date'] = None
-            df_view.at[idx, 'Due Date'] = due_date
-            df.at[idx, 'Due Date'] = due_date
-        st.markdown("---")
-        
+                if 'Due Date' not in df.columns:
+                    df['Due Date'] = None
+                df_view.at[idx, 'Due Date'] = due_date
+                df.at[idx, 'Due Date'] = due_date
+            st.markdown("---")
+
+
     if st.button("Export CSV"):
         csv_data = df_view.to_csv(encoding='utf-8-sig', index=False).encode('utf-8-sig')
         st.download_button(
@@ -592,8 +574,7 @@ if selected_option == "Option 1: Display without merging":
             data=BytesIO(csv_data),
             file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_CSV-Note_{project_name}.csv",
             mime="text/csv"
-            )
-
+        )
     if st.button("Generate ReportA4"):
         pdf_data = generate_pdf2(df_view, project_name)
         st.download_button(
@@ -602,6 +583,13 @@ if selected_option == "Option 1: Display without merging":
             file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReport_{project_name}.pdf",
             mime="application/pdf"
         )
+
+
+
+
+
+
+
 
 elif selected_option == "Option 2: Display with merging":
 
@@ -620,7 +608,7 @@ elif selected_option == "Option 2: Display with merging":
                 merged_df[col] = None
 
         # Merge the uploaded report with the existing data
-        merged_data = merged_df.merge(df_report[['Clash ID', 'Notes', 'Usage', 'Date Found']], on='Clash ID', how='left')
+        merged_data = merged_df.merge(df_report[['Merge ID', 'Notes', 'Usage', 'Date Found']], on='Merge ID', how='left')
 
         notes_col = 'Notes_y' if 'Notes_y' in merged_data.columns else 'Notes'
         usage_col = 'Usage_y' if 'Usage_y' in merged_data.columns else 'Usage'
@@ -631,9 +619,9 @@ elif selected_option == "Option 2: Display with merging":
         merged_df['Usage'] = merged_data[usage_col].combine_first(merged_df['Usage'])
         merged_df['Date Found'] = merged_data[date_found_col].combine_first(merged_df['Date Found'])
                  
+
         if 'df' not in st.session_state:
             st.session_state.df = merged_df.copy()
-        
         df = st.session_state.df
         if 'Notes' not in df.columns:
             df['Notes'] = ""
@@ -641,11 +629,12 @@ elif selected_option == "Option 2: Display with merging":
             df['Usage'] = "Tracking"
         if 'Assign To' not in df.columns:
             df['Assign To'] = "None"
+
         df["Notes"].fillna("", inplace=True)
         df["Usage"].fillna("Tracking", inplace=True)
         #df["Date Found"] = pd.to_datetime(df["Date Found"]).dt.strftime("%m/%d/%Y")
         df["Date Found"] = df["Date Found"].apply(try_parsing_date)
-
+        
 
         st.sidebar.header("Filter Options")
         filter_cols = ['Clash ID', 'View Name', 'Main Zone', 'Sub Zone', 'Level', 
@@ -660,68 +649,68 @@ elif selected_option == "Option 2: Display with merging":
             if value != 'All':
                 df_view = df_view[df_view[col] == value]
 
-                
-
         usage_options = ['Tracking', 'High Priority', 'Not Used','For Reporting']
         # Calculate the number of pages after filtering
 
+        ROWS_PER_PAGE = 10
 
-    ROWS_PER_PAGE = 10
+        total_rows = len(df_view)
+        total_pages = -(-total_rows // ROWS_PER_PAGE)
+        # Only display the slider if there's more than one page
+        if total_pages > 1:
+            selected_page = st.slider('Select a page:', 1, total_pages)
+        else:
+            selected_page = 1  # This is a ceiling division
 
-    total_rows = len(df_view)
-    total_pages = -(-total_rows // ROWS_PER_PAGE)  # Ceiling division
-
-    # Only display the slider if there's more than one page
-    if total_pages > 1:
-        selected_page = st.slider('Select a page:', 1, total_pages)
-    else:
-        selected_page = 1
-
-    # Filter the dataframe based on the selected page
-    start_idx = (selected_page - 1) * ROWS_PER_PAGE
-    end_idx = start_idx + ROWS_PER_PAGE
-
-    current_rows = df_view.iloc[start_idx:end_idx]
-
-
-    for idx, row in current_rows.iterrows():
-            
-        col1, col2 = st.columns([3, 3])
         
-        with col1:
-            st.write(f"<b>{row['View Name']}</b>", unsafe_allow_html=True)
-            st.image(row['Image'], use_column_width=True)
+        # Filter the dataframe based on the selected page
+        start_idx = (selected_page - 1) * ROWS_PER_PAGE
+        end_idx = start_idx + ROWS_PER_PAGE
+
+        current_rows = df_view.iloc[start_idx:end_idx]
+        for idx, row in current_rows.iterrows():
         
-        with col2:
-            st.write(f"<b>Issue Type:</b> {row['Issues Type']}", unsafe_allow_html=True)
-            st.write(f"<b>Issue Status:</b> {row['Issues Status']}", unsafe_allow_html=True)
-            st.write(f"<b>Description:</b> {row['Description']}", unsafe_allow_html=True)
-            note_key = f"note_{row['Clash ID']}_{idx}"
-            initial_note = st.session_state.notes.get(note_key, row['Notes'])
-            note = st.text_area(f"Add a note for {row['Clash ID']}", value=initial_note, key=note_key, height=150)
-            df_view.at[idx, 'Notes'] = note
-            df.at[idx, 'Notes'] = note
-            usage_key = f"usage_{row['Clash ID']}_{idx}"
-            initial_usage_index = usage_options.index(st.session_state.usage.get(usage_key, row['Usage'])) if st.session_state.usage.get(usage_key, row['Usage']) in usage_options else 0
-            usage = st.selectbox('Select usage', usage_options, index=initial_usage_index, key=usage_key)
-            df.at[idx, 'Usage'] = usage
-            #if usage == 'Not Used':
-                #df_view.at[idx, 'Issues Status'] = 'Resolved'
-                #df.at[idx, 'Issues Status'] = 'Resolved'
+            col1, col2 = st.columns([3, 3])
+            with col1:
+                st.write(f"<b>{row['View Name']}</b>", unsafe_allow_html=True)
+                st.image(row['Image'], use_column_width=True)
+            with col2:
+                st.write(f"<b>Issue Type:</b> {row['Issues Type']}", unsafe_allow_html=True)
+                st.write(f"<b>Issue Status:</b> {row['Issues Status']}", unsafe_allow_html=True)
+                st.write(f"<b>Description:</b> {row['Description']}", unsafe_allow_html=True)
+
+                    
+                note_key = f"note_{row['Clash ID']}_{idx}"
+                initial_note = st.session_state.notes.get(note_key, row['Notes'])
+                note = st.text_area(f"Add a note for {row['Clash ID']}", value=initial_note, key=note_key, height=150)
+
+                df_view.at[idx, 'Notes'] = note
+                df.at[idx, 'Notes'] = note
 
 
+                usage_key = f"usage_{row['Clash ID']}_{idx}"
+                initial_usage_index = usage_options.index(st.session_state.usage.get(usage_key, row['Usage'])) if st.session_state.usage.get(usage_key, row['Usage']) in usage_options else 0
+                usage = st.selectbox('Select usage', usage_options, index=initial_usage_index, key=usage_key)
+                df.at[idx, 'Usage'] = usage
+                if usage == 'Not Used':
+                    df_view.at[idx, 'Issues Status'] = 'Resolved'
+                    df.at[idx, 'Issues Status'] = 'Resolved'
+
+                #if df.at[idx, 'Issues Status'] == 'Resolved':
+                    #df.at[idx, 'Usage'] = 'Resolved'
 
 
-            due_date_key = f"due_date_{row['Clash ID']}_{idx}"
-            initial_due_date = st.session_state.due_dates.get(due_date_key, datetime.date.today() if pd.isnull(row.get('Due Date')) else pd.to_datetime(row['Due Date']).date())
-            due_date = st.date_input(f"Select due date for {row['Clash ID']}", value=initial_due_date, key=due_date_key)
+                due_date_key = f"due_date_{row['Clash ID']}_{idx}"
+                initial_due_date = st.session_state.due_dates.get(due_date_key, datetime.date.today() if pd.isnull(row.get('Due Date')) else pd.to_datetime(row['Due Date']).date())
+                due_date = st.date_input(f"Select due date for {row['Clash ID']}", value=initial_due_date, key=due_date_key)
 
-            if 'Due Date' not in df.columns:
-                df['Due Date'] = None
-            df_view.at[idx, 'Due Date'] = due_date
-            df.at[idx, 'Due Date'] = due_date
-        st.markdown("---")
-        
+                if 'Due Date' not in df.columns:
+                    df['Due Date'] = None
+                df_view.at[idx, 'Due Date'] = due_date
+                df.at[idx, 'Due Date'] = due_date
+            st.markdown("---")
+
+
     if st.button("Export CSV"):
         csv_data = df_view.to_csv(encoding='utf-8-sig', index=False).encode('utf-8-sig')
         st.download_button(
@@ -729,8 +718,7 @@ elif selected_option == "Option 2: Display with merging":
             data=BytesIO(csv_data),
             file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_CSV-Note_{project_name}.csv",
             mime="text/csv"
-            )
-
+        )
     if st.button("Generate ReportA4"):
         pdf_data = generate_pdf2(df_view, project_name)
         st.download_button(
@@ -739,3 +727,4 @@ elif selected_option == "Option 2: Display with merging":
             file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReport_{project_name}.pdf",
             mime="application/pdf"
         )
+       
