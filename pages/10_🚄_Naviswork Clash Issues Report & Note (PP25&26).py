@@ -384,8 +384,10 @@ def generate_pdf2(df, project_name):
     story.append(table)
     pdf.build(story)
     return output.getvalue()
+
 st.title('Clash Report & Note (P Pui)')
 project_name = st.text_input("Enter Project Name:")
+selected_option = st.radio("Select a process:", ["Option 1: Display without merging", "Option 2: Display with merging"])
 merged_df = pd.DataFrame()
 df_view = pd.DataFrame() 
 html_file = st.file_uploader("Upload HTML File", type=['html'])
@@ -458,7 +460,7 @@ if "Issues Status" in merged_df_display.columns:
     filtered_df_display = merged_df_display[merged_df_display["Issues Status"].isin(selected_statuses)]
 else:
     filtered_df_display = merged_df_display
-st.table(filtered_df_display.head(10))
+st.table(filtered_df_display.head(5))
 
 
 if st.button("Generate CSV"):
@@ -489,7 +491,7 @@ if 'usage' not in st.session_state:
 if 'due_dates' not in st.session_state:  # Initialize session state for due dates
     st.session_state.due_dates = {}
 
-selected_option = st.radio("Select a process:", ["Option 1: Display without merging", "Option 2: Display with merging"])
+
 
 if selected_option == "Option 1: Display without merging":
     if not merged_df.empty and uploaded_files:
@@ -601,21 +603,36 @@ if selected_option == "Option 1: Display without merging":
             mime="application/pdf"
         )
 
-
 elif selected_option == "Option 2: Display with merging":
 
-# Add the file uploader for the Clash Tracking Report CSV file
-    report_file = st.file_uploader("Upload the Clash Tracking Report CSV file", type=['csv'])
 
-# Add a checkbox to ask the user if they want to merge the uploaded CSV
+    
+    report_file = st.file_uploader("Upload the Clash Tracking Report CSV file", type=['csv'])
     merge_option = st.checkbox("Do you want to merge the uploaded CSV with the existing data?")
 
     if not merged_df.empty and uploaded_files and merge_option:
         df_report = pd.read_csv(report_file, encoding='utf-8-sig')
+        
+        for col in ['Notes', 'Usage', 'Date Found']:
+            if col not in df_report.columns:
+                df_report[col] = None
+            if col not in merged_df.columns:
+                merged_df[col] = None
+
+        # Merge the uploaded report with the existing data
+        merged_data = merged_df.merge(df_report[['Clash ID', 'Notes', 'Usage', 'Date Found']], on='Clash ID', how='left')
+
+        notes_col = 'Notes_y' if 'Notes_y' in merged_data.columns else 'Notes'
+        usage_col = 'Usage_y' if 'Usage_y' in merged_data.columns else 'Usage'
+        date_found_col = 'Date Found_y' if 'Date Found_y' in merged_data.columns else 'Date Found'
+
+        # Update the original dataframe with the merged values
+        merged_df['Notes'] = merged_data[notes_col].combine_first(merged_df['Notes'])
+        merged_df['Usage'] = merged_data[usage_col].combine_first(merged_df['Usage'])
+        merged_df['Date Found'] = merged_data[date_found_col].combine_first(merged_df['Date Found'])
                  
         if 'df' not in st.session_state:
             st.session_state.df = merged_df.copy()
-        # Merge df with df_report based on 'Clash ID'
         
         df = st.session_state.df
         if 'Notes' not in df.columns:
@@ -624,16 +641,11 @@ elif selected_option == "Option 2: Display with merging":
             df['Usage'] = "Tracking"
         if 'Assign To' not in df.columns:
             df['Assign To'] = "None"
-        merged_data = df.merge(df_report[['Clash ID', 'Notes', 'Usage', 'Date Found']], on='Clash ID', how='left')
-        df['Notes'] = merged_data['Notes_y'].combine_first(df['Notes'])
-        df['Usage'] = merged_data['Usage_y'].combine_first(df['Usage'])
-        df['Date Found'] = merged_data['Date Found_y'].combine_first(df['Date Found'])
-
         df["Notes"].fillna("", inplace=True)
         df["Usage"].fillna("Tracking", inplace=True)
         #df["Date Found"] = pd.to_datetime(df["Date Found"]).dt.strftime("%m/%d/%Y")
         df["Date Found"] = df["Date Found"].apply(try_parsing_date)
-        
+
 
         st.sidebar.header("Filter Options")
         filter_cols = ['Clash ID', 'View Name', 'Main Zone', 'Sub Zone', 'Level', 
@@ -647,6 +659,8 @@ elif selected_option == "Option 2: Display with merging":
         for col, value in selected_values.items():
             if value != 'All':
                 df_view = df_view[df_view[col] == value]
+
+                
 
         usage_options = ['Tracking', 'High Priority', 'Not Used','For Reporting']
         # Calculate the number of pages after filtering
