@@ -30,7 +30,7 @@ import datetime
 
 EXTRACTED_FLAG = False
 
-st.set_page_config(page_title='Naviswork Clash Issues Report & Note', page_icon=":station:", layout='centered')
+st.set_page_config(page_title='Naviswork Clash Issues Report & Note (UOB)', page_icon=":atm:", layout='centered')
 
 css_file = "styles/main.css"
 with open(css_file) as f:
@@ -367,7 +367,7 @@ def generate_pdf2(df, project_name):
 
 
 
-st.title('Clash Report & Note (P Bowling)')
+st.title('Naviswork Clash Issues Report & Note (UOB)')
 project_name = st.text_input("Enter Project Name:")
 main_zone = st.text_input("Main Zone", value="")
 selected_option = st.radio("Select a process:", ["Option 1: Display without merging", "Option 2: Display with merging"])
