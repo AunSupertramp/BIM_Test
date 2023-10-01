@@ -459,7 +459,7 @@ if "Issues Status" in merged_df_display.columns:
 else:
     filtered_df_display = merged_df_display
 st.table(filtered_df_display.head(10))
-st.write(image_dict) 
+
 
 if st.button("Generate CSV"):
     #csv_data = merged_df.to_csv(index=False)
@@ -480,9 +480,6 @@ if st.button("Generate Report"):
         mime="application/pdf"
         )
        
-
-        
-
 
 
 if 'notes' not in st.session_state:
@@ -601,4 +598,4 @@ if st.button("Generate ReportA4"):
         file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReport_{project_name}.pdf",
         mime="application/pdf"
     )
-            
+

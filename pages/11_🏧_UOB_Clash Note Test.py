@@ -384,7 +384,7 @@ def generate_pdf2(df, project_name):
     story.append(table)
     pdf.build(story)
     return output.getvalue()
-st.title('Clash Report Generator (P Pui)')
+st.title('Clash Report & Note (P Pui)')
 project_name = st.text_input("Enter Project Name:")
 merged_df = pd.DataFrame()
 df_view = pd.DataFrame() 
@@ -435,10 +435,13 @@ for uploaded_file in uploaded_files:
     else:
         st.write(f"Unsupported file type: {file_type}")
 
+
+
 # Replace the "Image" column with the filenames for display in Streamlit table
 merged_df_display = merged_df.copy()
 # Replace the "Image" column with the actual image objects for processing
 if "Image" in merged_df.columns:
+    merged_df["ImageName"]=merged_df["Image"]
     merged_df["Image"] = merged_df["Image"].apply(lambda x: image_dict.get(x, "Image not found"))
     
 if not merged_df.empty and "Issues Status" in merged_df.columns:
@@ -456,7 +459,7 @@ if "Issues Status" in merged_df_display.columns:
 else:
     filtered_df_display = merged_df_display
 st.table(filtered_df_display.head(10))
-#st.write(image_dict) 
+
 
 if st.button("Generate CSV"):
     #csv_data = merged_df.to_csv(index=False)
@@ -478,9 +481,6 @@ if st.button("Generate Report"):
         )
        
 
-        
-ROWS_PER_PAGE = 10
-
 
 if 'notes' not in st.session_state:
     st.session_state.notes = {}
@@ -489,94 +489,239 @@ if 'usage' not in st.session_state:
 if 'due_dates' not in st.session_state:  # Initialize session state for due dates
     st.session_state.due_dates = {}
 
+selected_option = st.radio("Select a process:", ["Option 1: Display without merging", "Option 2: Display with merging"])
 
-if not merged_df.empty and uploaded_files:
-    if 'df' not in st.session_state:
-        st.session_state.df = merged_df.copy()
+if selected_option == "Option 1: Display without merging":
+    if not merged_df.empty and uploaded_files:
+        if 'df' not in st.session_state:
+            st.session_state.df = merged_df.copy()
+            
+        df = st.session_state.df
+        if 'Notes' not in df.columns:
+            df['Notes'] = ""
+        if 'Usage' not in df.columns:
+            df['Usage'] = "Tracking"
+        if 'Assign To' not in df.columns:
+            df['Assign To'] = "None"
+
+        df["Notes"].fillna("", inplace=True)
+        df["Usage"].fillna("Tracking", inplace=True)
+        #df["Date Found"] = pd.to_datetime(df["Date Found"]).dt.strftime("%m/%d/%Y")
+        df["Date Found"] = df["Date Found"].apply(try_parsing_date)
         
-    df = st.session_state.df
-    if 'Notes' not in df.columns:
-        df['Notes'] = ""
-    if 'Usage' not in df.columns:
-        df['Usage'] = "Tracking"
-    if 'Assign To' not in df.columns:
-        df['Assign To'] = "None"
 
-    df["Notes"].fillna("", inplace=True)
-    df["Usage"].fillna("Tracking", inplace=True)
-    #df["Date Found"] = pd.to_datetime(df["Date Found"]).dt.strftime("%m/%d/%Y")
-    df["Date Found"] = df["Date Found"].apply(try_parsing_date)
-    
+        st.sidebar.header("Filter Options")
+        filter_cols = ['Clash ID', 'View Name', 'Main Zone', 'Sub Zone', 'Level', 
+                    'Issues Type', 'Issues Status', 'Discipline', 'Assign To', 'Usage']
+        selected_values = {}
+        for col in filter_cols:
+            unique_values = df[col].unique().tolist()
+            selected_values[col] = st.sidebar.selectbox(f'Select {col}', ['All'] + unique_values)
 
-    st.sidebar.header("Filter Options")
-    filter_cols = ['Clash ID', 'View Name', 'Main Zone', 'Sub Zone', 'Level', 
-                   'Issues Type', 'Issues Status', 'Discipline', 'Assign To', 'Usage']
-    selected_values = {}
-    for col in filter_cols:
-        unique_values = df[col].unique().tolist()
-        selected_values[col] = st.sidebar.selectbox(f'Select {col}', ['All'] + unique_values)
+        df_view = df.copy()
+        for col, value in selected_values.items():
+            if value != 'All':
+                df_view = df_view[df_view[col] == value]
 
-    df_view = df.copy()
-    for col, value in selected_values.items():
-        if value != 'All':
-            df_view = df_view[df_view[col] == value]
+        usage_options = ['Tracking', 'High Priority', 'Not Used','For Reporting']
+        # Calculate the number of pages after filtering
 
-    usage_options = ['Tracking', 'High Priority', 'Not Used','For Reporting']
-      # Calculate the number of pages after filtering
 
-for idx, row in df_view.iterrows():
+    ROWS_PER_PAGE = 10
+
+    total_rows = len(df_view)
+    total_pages = -(-total_rows // ROWS_PER_PAGE)  # Ceiling division
+
+    # Only display the slider if there's more than one page
+    if total_pages > 1:
+        selected_page = st.slider('Select a page:', 1, total_pages)
+    else:
+        selected_page = 1
+
+    # Filter the dataframe based on the selected page
+    start_idx = (selected_page - 1) * ROWS_PER_PAGE
+    end_idx = start_idx + ROWS_PER_PAGE
+
+    current_rows = df_view.iloc[start_idx:end_idx]
+
+
+    for idx, row in current_rows.iterrows():
+            
+        col1, col2 = st.columns([3, 3])
         
-    col1, col2 = st.columns([3, 3])
-    
-    with col1:
-        st.write(f"<b>{row['View Name']}</b>", unsafe_allow_html=True)
-        st.image(row['Image'], use_column_width=True)
-    
-    with col2:
-        st.write(f"<b>Issue Type:</b> {row['Issues Type']}", unsafe_allow_html=True)
-        st.write(f"<b>Issue Status:</b> {row['Issues Status']}", unsafe_allow_html=True)
-        st.write(f"<b>Description:</b> {row['Description']}", unsafe_allow_html=True)
-        note_key = f"note_{row['Clash ID']}_{idx}"
-        initial_note = st.session_state.notes.get(note_key, row['Notes'])
-        note = st.text_area(f"Add a note for {row['Clash ID']}", value=initial_note, key=note_key, height=150)
-        df_view.at[idx, 'Notes'] = note
-        df.at[idx, 'Notes'] = note
-        usage_key = f"usage_{row['Clash ID']}_{idx}"
-        initial_usage_index = usage_options.index(st.session_state.usage.get(usage_key, row['Usage'])) if st.session_state.usage.get(usage_key, row['Usage']) in usage_options else 0
-        usage = st.selectbox('Select usage', usage_options, index=initial_usage_index, key=usage_key)
-        df.at[idx, 'Usage'] = usage
-        #if usage == 'Not Used':
-            #df_view.at[idx, 'Issues Status'] = 'Resolved'
-            #df.at[idx, 'Issues Status'] = 'Resolved'
+        with col1:
+            st.write(f"<b>{row['View Name']}</b>", unsafe_allow_html=True)
+            st.image(row['Image'], use_column_width=True)
+        
+        with col2:
+            st.write(f"<b>Issue Type:</b> {row['Issues Type']}", unsafe_allow_html=True)
+            st.write(f"<b>Issue Status:</b> {row['Issues Status']}", unsafe_allow_html=True)
+            st.write(f"<b>Description:</b> {row['Description']}", unsafe_allow_html=True)
+            note_key = f"note_{row['Clash ID']}_{idx}"
+            initial_note = st.session_state.notes.get(note_key, row['Notes'])
+            note = st.text_area(f"Add a note for {row['Clash ID']}", value=initial_note, key=note_key, height=150)
+            df_view.at[idx, 'Notes'] = note
+            df.at[idx, 'Notes'] = note
+            usage_key = f"usage_{row['Clash ID']}_{idx}"
+            initial_usage_index = usage_options.index(st.session_state.usage.get(usage_key, row['Usage'])) if st.session_state.usage.get(usage_key, row['Usage']) in usage_options else 0
+            usage = st.selectbox('Select usage', usage_options, index=initial_usage_index, key=usage_key)
+            df.at[idx, 'Usage'] = usage
+            #if usage == 'Not Used':
+                #df_view.at[idx, 'Issues Status'] = 'Resolved'
+                #df.at[idx, 'Issues Status'] = 'Resolved'
 
 
 
 
-        due_date_key = f"due_date_{row['Clash ID']}_{idx}"
-        initial_due_date = st.session_state.due_dates.get(due_date_key, datetime.date.today() if pd.isnull(row.get('Due Date')) else pd.to_datetime(row['Due Date']).date())
-        due_date = st.date_input(f"Select due date for {row['Clash ID']}", value=initial_due_date, key=due_date_key)
+            due_date_key = f"due_date_{row['Clash ID']}_{idx}"
+            initial_due_date = st.session_state.due_dates.get(due_date_key, datetime.date.today() if pd.isnull(row.get('Due Date')) else pd.to_datetime(row['Due Date']).date())
+            due_date = st.date_input(f"Select due date for {row['Clash ID']}", value=initial_due_date, key=due_date_key)
 
-        if 'Due Date' not in df.columns:
-            df['Due Date'] = None
-        df_view.at[idx, 'Due Date'] = due_date
-        df.at[idx, 'Due Date'] = due_date
-    st.markdown("---")
+            if 'Due Date' not in df.columns:
+                df['Due Date'] = None
+            df_view.at[idx, 'Due Date'] = due_date
+            df.at[idx, 'Due Date'] = due_date
+        st.markdown("---")
+        
+    if st.button("Export CSV"):
+        csv_data = df_view.to_csv(encoding='utf-8-sig', index=False).encode('utf-8-sig')
+        st.download_button(
+            label="Download CSV",
+            data=BytesIO(csv_data),
+            file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_CSV-Note_{project_name}.csv",
+            mime="text/csv"
+            )
 
-if st.button("Export CSV"):
-    csv_data = df_view.to_csv(encoding='utf-8-sig', index=False).encode('utf-8-sig')
-    st.download_button(
-        label="Download CSV",
-        data=BytesIO(csv_data),
-        file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_CSV-Note_{project_name}.csv",
-        mime="text/csv"
+    if st.button("Generate ReportA4"):
+        pdf_data = generate_pdf2(df_view, project_name)
+        st.download_button(
+            label="Download PDF Report",
+            data=pdf_data,
+            file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReport_{project_name}.pdf",
+            mime="application/pdf"
         )
 
-if st.button("Generate ReportA4"):
-    pdf_data = generate_pdf2(df_view, project_name)
-    st.download_button(
-        label="Download PDF Report",
-        data=pdf_data,
-        file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReport_{project_name}.pdf",
-        mime="application/pdf"
-    )
+
+elif selected_option == "Option 2: Display with merging":
+
+# Add the file uploader for the Clash Tracking Report CSV file
+    report_file = st.file_uploader("Upload the Clash Tracking Report CSV file", type=['csv'])
+
+# Add a checkbox to ask the user if they want to merge the uploaded CSV
+    merge_option = st.checkbox("Do you want to merge the uploaded CSV with the existing data?")
+
+    if not merged_df.empty and uploaded_files and merge_option:
+        df_report = pd.read_csv(report_file, encoding='utf-8-sig')
+                 
+        if 'df' not in st.session_state:
+            st.session_state.df = merged_df.copy()
+        # Merge df with df_report based on 'Clash ID'
+        
+        df = st.session_state.df
+        if 'Notes' not in df.columns:
+            df['Notes'] = ""
+        if 'Usage' not in df.columns:
+            df['Usage'] = "Tracking"
+        if 'Assign To' not in df.columns:
+            df['Assign To'] = "None"
+        merged_data = df.merge(df_report[['Clash ID', 'Notes', 'Usage', 'Date Found']], on='Clash ID', how='left')
+        df['Notes'] = merged_data['Notes_y'].combine_first(df['Notes'])
+        df['Usage'] = merged_data['Usage_y'].combine_first(df['Usage'])
+        df['Date Found'] = merged_data['Date Found_y'].combine_first(df['Date Found'])
+
+        df["Notes"].fillna("", inplace=True)
+        df["Usage"].fillna("Tracking", inplace=True)
+        #df["Date Found"] = pd.to_datetime(df["Date Found"]).dt.strftime("%m/%d/%Y")
+        df["Date Found"] = df["Date Found"].apply(try_parsing_date)
+        
+
+        st.sidebar.header("Filter Options")
+        filter_cols = ['Clash ID', 'View Name', 'Main Zone', 'Sub Zone', 'Level', 
+                    'Issues Type', 'Issues Status', 'Discipline', 'Assign To', 'Usage']
+        selected_values = {}
+        for col in filter_cols:
+            unique_values = df[col].unique().tolist()
+            selected_values[col] = st.sidebar.selectbox(f'Select {col}', ['All'] + unique_values)
+
+        df_view = df.copy()
+        for col, value in selected_values.items():
+            if value != 'All':
+                df_view = df_view[df_view[col] == value]
+
+        usage_options = ['Tracking', 'High Priority', 'Not Used','For Reporting']
+        # Calculate the number of pages after filtering
+
+
+    ROWS_PER_PAGE = 10
+
+    total_rows = len(df_view)
+    total_pages = -(-total_rows // ROWS_PER_PAGE)  # Ceiling division
+
+    # Only display the slider if there's more than one page
+    if total_pages > 1:
+        selected_page = st.slider('Select a page:', 1, total_pages)
+    else:
+        selected_page = 1
+
+    # Filter the dataframe based on the selected page
+    start_idx = (selected_page - 1) * ROWS_PER_PAGE
+    end_idx = start_idx + ROWS_PER_PAGE
+
+    current_rows = df_view.iloc[start_idx:end_idx]
+
+
+    for idx, row in current_rows.iterrows():
             
+        col1, col2 = st.columns([3, 3])
+        
+        with col1:
+            st.write(f"<b>{row['View Name']}</b>", unsafe_allow_html=True)
+            st.image(row['Image'], use_column_width=True)
+        
+        with col2:
+            st.write(f"<b>Issue Type:</b> {row['Issues Type']}", unsafe_allow_html=True)
+            st.write(f"<b>Issue Status:</b> {row['Issues Status']}", unsafe_allow_html=True)
+            st.write(f"<b>Description:</b> {row['Description']}", unsafe_allow_html=True)
+            note_key = f"note_{row['Clash ID']}_{idx}"
+            initial_note = st.session_state.notes.get(note_key, row['Notes'])
+            note = st.text_area(f"Add a note for {row['Clash ID']}", value=initial_note, key=note_key, height=150)
+            df_view.at[idx, 'Notes'] = note
+            df.at[idx, 'Notes'] = note
+            usage_key = f"usage_{row['Clash ID']}_{idx}"
+            initial_usage_index = usage_options.index(st.session_state.usage.get(usage_key, row['Usage'])) if st.session_state.usage.get(usage_key, row['Usage']) in usage_options else 0
+            usage = st.selectbox('Select usage', usage_options, index=initial_usage_index, key=usage_key)
+            df.at[idx, 'Usage'] = usage
+            #if usage == 'Not Used':
+                #df_view.at[idx, 'Issues Status'] = 'Resolved'
+                #df.at[idx, 'Issues Status'] = 'Resolved'
+
+
+
+
+            due_date_key = f"due_date_{row['Clash ID']}_{idx}"
+            initial_due_date = st.session_state.due_dates.get(due_date_key, datetime.date.today() if pd.isnull(row.get('Due Date')) else pd.to_datetime(row['Due Date']).date())
+            due_date = st.date_input(f"Select due date for {row['Clash ID']}", value=initial_due_date, key=due_date_key)
+
+            if 'Due Date' not in df.columns:
+                df['Due Date'] = None
+            df_view.at[idx, 'Due Date'] = due_date
+            df.at[idx, 'Due Date'] = due_date
+        st.markdown("---")
+        
+    if st.button("Export CSV"):
+        csv_data = df_view.to_csv(encoding='utf-8-sig', index=False).encode('utf-8-sig')
+        st.download_button(
+            label="Download CSV",
+            data=BytesIO(csv_data),
+            file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_CSV-Note_{project_name}.csv",
+            mime="text/csv"
+            )
+
+    if st.button("Generate ReportA4"):
+        pdf_data = generate_pdf2(df_view, project_name)
+        st.download_button(
+            label="Download PDF Report",
+            data=pdf_data,
+            file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReport_{project_name}.pdf",
+            mime="application/pdf"
+        )
