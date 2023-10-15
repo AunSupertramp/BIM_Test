@@ -31,11 +31,13 @@ empty1,content1,empty2,content2,empty3=st.columns([0.3,1.5,0.3,2,0.3])
 with empty1:
         st.empty()
 with content1:
+        column_1, column_2, column_3 = st.columns([1.5,3,1.5])
         #st.write("here is the first column of content.")
-        imageurl="https://raw.githubusercontent.com/atomsiwawut1/FloodPrediction/main/Media/Atom.png"
-        #content1.image(".\Media\Atom.png",caption="Siwawut pattanasri",width=300)
-        #content1.image(imageurl,caption="Siwawut pattanasri",width=300)
-        content1.image(imageurl,caption="Siwawut pattanasri",use_column_width=True)
+        with column_2:
+                imageurl="https://raw.githubusercontent.com/atomsiwawut1/FloodPrediction/main/Media/Atom.png"
+                #content1.image(".\Media\Atom.png",caption="Siwawut pattanasri",width=300)
+                #content1.image(imageurl,caption="Siwawut pattanasri",width=300)
+                column_2.image(imageurl,caption="Siwawut pattanasri",use_column_width=True)
 
 
         st.markdown("""
@@ -69,16 +71,38 @@ with content1:
 
 
         """)
+        st.markdown("""
+
+        ---
+
+        """)
+
+        st.markdown("""
+
+## contact
+
+:blue_book:[Facebook](https://www.facebook.com/siwawut.pattanasri/)
+
+
+:green_book: lineID : atomsiwawut
+
+:e-mail: atomsiwawut@gmail.com
+
+:telephone_receiver: 0828952663
+
+""")
+        
+        imageurl2 = "https://raw.githubusercontent.com/atomsiwawut1/FloodPrediction/main/Media/City.png"
+        #st.image(".\Media\City.png",caption="https://www.facebook.com/siwawut.pattanasri/",width=600)
+        #st.image(imageurl2,caption="https://www.facebook.com/siwawut.pattanasri/",width=600)
+        st.image(imageurl2,caption="https://www.facebook.com/siwawut.pattanasri/",use_column_width=True)
+        #st.image('hackershrine.jpg',use_column_width=True)
 
 with empty2:
         st.empty()
 with content2:
         ##st.write("here is the second column of content.")
         st.markdown("""
-        
-➞      Siwawut has experiences in analysis and design structure of building with CSI software; 3D modelling with BIM software (SketchUp Revit Tekla Structures) management and planning of construction projects with Primavera P6 & Microsoft Project Data Visualization with Power BI and Data analysis with R & Python programming.
-
---- 
 ### EXPERTISE AND SKILLS
 - ◉ Consulting about using BIM in project (i.e. BIM Model Development, Quantity Takeoff, Scheduling, Clash detection and Facility Management)
 - ◉ Technical support for teams (Automation Process, BIM Technical Issues, ETC)
@@ -106,33 +130,36 @@ with content2:
 ---
 
 ### Relevant Experience
-- ◉ Whizdom101 Bangkok, Mixed-use Building; Project Commercial Phase II  (Feb 2019 – 2022), Magnolia Quality Development Corporation Limited | BIM Consultant
 
-- ◉ Terra, Data Center; Project Terra (Feb 2019 – 2021), ST Telemedia Limited | BIM Consultant
-
-- ◉ Sansiri BIM Corporate Service | Bangkok | Sansiri Development High rise & Low Rise | 2019 – 2020 | BIM Corporate Consult
-
-- ◉ Dusit Central Park | Bangkok | Joint Venture of Dusit Thani with Central Pattana | 2019 - 2023 | BIM Management
-
-- ◉ DTGO BIM Corporate Service | Bangkok | 2020 – 2021 | BIM Corporate Consult
-
-- ◉ Bangkok Cybertech District | Bangkok | Magnolia Quality Development Corporation Limited (MQDC) | 2020 - 2023 |BIM consultant
-
-- ◉ PATTAYA WORLDMARK | Chonburi | Magnolia Quality Development Corporation Limited (MQDC) | 2020 - 2025 | BIM Management
-
-- ◉ Pattaya Smart City Platform,Chonburi| EEC Phase 1  | 2021 - 2025 |Urban Development
-
-- ◉ New South Wales, Australian | 2021 - 2022 | BIM Asset Code management
-
+- ◉ Next01, Data Center; Project Terra (2022 – 2023), Gulf | BIM Consultant              
+                    
+- ◉ Pattaya Smart City Framework,Chonburi| EEC Phase 1  | 2021 - 2022 |Urban Development
+                    
 - ◉ AP BIM Corporate Service | Bangkok | 2021 – 2022 | BIM Corporate Consult
 
-- ◉ Next01, Data Center; Project Terra (Feb 2022 – 2023), ST Telemedia Limited | BIM Consultant
-
-
+- ◉ BIM Asset Code management | New South Wales, Australian | 2021 - 2022 | BIM Consultant
+                    
+- ◉ Cloud 11 | Bangkok | Magnolia Quality Development Corporation Limited (MQDC) | 2020 - 2024 |BIM consultant
+                    
+- ◉ PATTAYA WORLDMARK | Chonburi | Magnolia Quality Development Corporation Limited (MQDC) | 2020 - 2025 | BIM consultant
+                                     
+- ◉ Dusit Central Park | Bangkok | Joint Venture of Dusit Thani with Central Pattana | 2019 - 2023 | BIM Consultant
+                    
+- ◉ DTGO BIM Corporate Service | Bangkok | 2020 – 2021 | BIM Corporate Consult
+                    
+- ◉ Sansiri BIM Corporate Service | Bangkok | Sansiri Development High rise & Low Rise | 2019 – 2020 | BIM Corporate Consult
+                    
+- ◉ Terra, Data Center; Project Terra (Feb 2019 – 2022), ST Telemedia Limited | BIM Consultant
+                    
+- ◉ Whizdom101 Bangkok, Mixed-use Building; Project Commercial Phase II  (Feb 2019 – 2022), Magnolia Quality Development Corporation Limited | BIM Consultant
 
 
 
         """)
+
+
+
+
 
 with empty3:
         st.empty()
@@ -149,34 +176,9 @@ st.markdown("""
 
 
 
-empty1,content1,empty2,content2,empty3=st.columns([0.3,1.5,0.3,2,0.3])
-with empty1:
-        st.empty()
-with content1:
-        imageurl2 = "https://raw.githubusercontent.com/atomsiwawut1/FloodPrediction/main/Media/City.png"
-        #st.image(".\Media\City.png",caption="https://www.facebook.com/siwawut.pattanasri/",width=600)
-        #st.image(imageurl2,caption="https://www.facebook.com/siwawut.pattanasri/",width=600)
-        st.image(imageurl2,caption="https://www.facebook.com/siwawut.pattanasri/",use_column_width=True)
-        #st.image('hackershrine.jpg',use_column_width=True)
-with empty2:
-        st.empty()
-with content2:
-        st.markdown("""
-
-## contact
-
-[Facebook](https://www.facebook.com/siwawut.pattanasri/)
 
 
-lineID : atomsiwawut
 
-:e-mail: atomsiwawut@gmail.com
-
-:telephone_receiver: 0828952663
-
-""")
-with empty3:
-        st.empty()
 
 
 
