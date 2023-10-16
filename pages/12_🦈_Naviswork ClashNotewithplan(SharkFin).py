@@ -30,7 +30,7 @@ import datetime
 
 EXTRACTED_FLAG = False
 
-st.set_page_config(page_title='Naviswork Clash Issues Report & Note (Sharkfin)', page_icon=":atm:", layout='centered')
+st.set_page_config(page_title='Naviswork Clash Issues Report & Note (Shark Fin)', page_icon=":shark:", layout='centered')
 
 css_file = "styles/main.css"
 with open(css_file) as f:
