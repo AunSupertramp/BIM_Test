@@ -30,7 +30,7 @@ import datetime
 
 EXTRACTED_FLAG = False
 
-st.set_page_config(page_title='Naviswork Clash Issues Report & Note (UOB)', page_icon=":atm:", layout='centered')
+st.set_page_config(page_title='Naviswork Clash Issues Report & Note (Sharkfin)', page_icon=":atm:", layout='centered')
 
 css_file = "styles/main.css"
 with open(css_file) as f:
@@ -92,7 +92,7 @@ def process_html_to_dfs(html_content):
 
 # Function to process HTML content
 def process_html_content(html_content):
-    df1 = process_html_to_dfs(html_content)
+    #df1 = process_html_to_dfs(html_content)
 
     soup = BeautifulSoup(html_content, 'html.parser')
     h2_tags = soup.find_all('h2')
@@ -105,29 +105,31 @@ def process_html_content(html_content):
 
     df = pd.DataFrame(data, columns=['View Name', 'Image'])
     df = df[df['View Name'].str.count('_') >= 3]
+    filtered_no_asterisk_df = df[~df['View Name'].str.contains('\*')]
+    df=filtered_no_asterisk_df
     view_name_components = df['View Name'].str.split('_', expand=True)
     df['Clash ID'] = view_name_components[0]
-    df['Level'] = view_name_components[1]
-    df['Date Found'] = view_name_components[2]
-    df['Discipline'] = view_name_components[3]
-    df['Description'] = view_name_components[4]
-    df['Merge ID'] = df['Clash ID'] + '_' + df['Level']
+    df['Date Found'] = view_name_components[1]
+    df['Main Zone'] = view_name_components[2]
+    df['Location'] = view_name_components[3]
+    df['Level'] = view_name_components[4]
+    df['Discipline'] = view_name_components[5]
+    df['Description'] = view_name_components[6]
+    df['Assign To'] = view_name_components[7]
     df['Date Found'] = df['Date Found'].apply(adjust_convert_date_format)
     df['Issues Status'] = ""
     
 
 
     # Merge reordered_df with df1 and df2 based on "Clash ID"
-    merged_df = pd.merge(df, df1, on="Merge ID", how="outer", suffixes=("", "_df1"))
+    #merged_df = pd.merge(df, df1, on="Merge ID", how="outer", suffixes=("", "_df1"))
     #merged_df = pd.merge(merged_with_df1, df2, on="Merge ID", how="outer", suffixes=("", "_df2"))
     # Rename the columns as per your request
-    column_rename_mapping = {
-        "View Name_df1": "View Name_Plan",
-        "Image_df1": "Image_Plan"
-    }
-    merged_df = merged_df.rename(columns=column_rename_mapping)
-
-    return merged_df
+    #column_rename_mapping = {"View Name_df1": "View Name_Plan","Image_df1": "Image_Plan"}
+    #merged_df = merged_df.rename(columns=column_rename_mapping)
+    #return merged_df
+    return df
+    
 
 # Function to extract view details with levels from XML content
 def extract_view_details_with_levels(root):
@@ -136,16 +138,15 @@ def extract_view_details_with_levels(root):
 
     while stack:
         element, folder_names, parent_name = stack.pop()
-        current_folder_name = element.attrib.get('name', parent_name)
         
         if element.tag == 'view':
             view_name = element.attrib.get('name', None)
-            issues_type = folder_names[-4] if len(folder_names) >= 4 else None
-            issues_status = folder_names[-3] if len(folder_names) >= 3 else None
-            assign_to = folder_names[-2] if len(folder_names) >= 2 else None
+            issues_type = folder_names[-3] if len(folder_names) >= 3 else None
+            issues_status = folder_names[-2] if len(folder_names) >= 2 else None
             sub_zone = folder_names[-1] if folder_names else None
-            results.append((view_name, sub_zone, assign_to, issues_status, issues_type))
+            results.append((view_name, sub_zone, issues_status, issues_type))
         else:
+            current_folder_name = element.attrib.get('name', parent_name)
             stack.extend([(child, folder_names + [current_folder_name], current_folder_name) for child in element])
     
     return results
@@ -363,7 +364,7 @@ def generate_pdf2(df, project_name):
 
         details_list = []
         texts = [
-            f"<b>Clash ID:</b> <l>{row['Merge ID']}</l>",
+            f"<b>Clash ID:</b> <l>{row['Clash ID']}</l>",
             f"<b>Date Found:</b> <l>{row['Date Found']}</l>",
             f"<b>Main Zone:</b> <l>{row['Main Zone']}</l>",
             f"<b>Sub Zone:</b> <l>{row['Sub Zone']}</l>",
@@ -396,8 +397,8 @@ def generate_pdf2(df, project_name):
     page_width, page_height = A4 
     col_widths = [(0.05 * page_width), (0.3 * page_width), (0.3* page_width), (0.3* page_width)]
     table_style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.blue),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('BACKGROUND', (0, 0), (-1, 0), '#8EA5AE'),
+        ('TEXTCOLOR', (0, 0), (-1, 0), '#333333'),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('FONTNAME', (0, 0), (-1, 0), 'Sarabun-Bold'),
@@ -461,11 +462,11 @@ def generate_pdf3(df, project_name):
         else:
             image_path = "Image Not Found"
 
-        if isinstance(row['Image_Plan'], BytesIO):
-            plan_image_stream = row['Image_Plan']
-            plan_image_path = ReportlabImage(plan_image_stream, width=2.4*inch, height=2.4*inch)
-        else:
-            plan_image_path = "Plan Image Not Found"
+        #if isinstance(row['Image_Plan'], BytesIO):
+            #plan_image_stream = row['Image_Plan']
+            #plan_image_path = ReportlabImage(plan_image_stream, width=2.4*inch, height=2.4*inch)
+        #else:
+            #plan_image_path = "Plan Image Not Found"
 
         # Handling the Section image
         #if isinstance(row['Image_Section'], BytesIO):
@@ -510,8 +511,8 @@ def generate_pdf3(df, project_name):
     page_width, page_height = A3 
     col_widths = [(0.05 * page_width), (0.255 * page_width), (0.255* page_width),  (0.2* page_width), (0.35* page_width)]
     table_style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.blue),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('BACKGROUND', (0, 0), (-1, 0), '#8EA5AE'),
+        ('TEXTCOLOR', (0, 0), (-1, 0), '#333333'),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('FONTNAME', (0, 0), (-1, 0), 'Sarabun-Bold'),
@@ -533,9 +534,8 @@ def generate_pdf3(df, project_name):
 
 
 
-st.title('Naviswork Clash Issues Report & Note (UOB)')
-project_name = st.text_input("Enter Project Name:")
-main_zone = st.text_input("Main Zone", value="")
+st.title('Naviswork Clash Issues Report & Note ((NC) Shark Fin BIMM)')
+project_name = st.text_input("Enter Project Name:", value="(NC) Shark Fin BIMM")
 selected_option = st.radio("Select a process:", ["Option 1: Display without merging", "Option 2: Display with merging"])
 merged_df = pd.DataFrame()
 df_view = pd.DataFrame() 
@@ -558,30 +558,28 @@ for uploaded_file in uploaded_files:
 
 
 if html_file and xml_file:
-    html_content = html_file.read().decode('utf-8')
+    html_content = html_file.read().decode('utf-8-sig')
     html_df = process_html_content(html_content)
 
     tree = ET.parse(xml_file)
     root = tree.getroot()
     view_details_with_levels = extract_view_details_with_levels(root)
-    xml_df = pd.DataFrame(view_details_with_levels, columns=['View Name', 'Sub Zone', 'Assign To', 'Issues Status', 'Issues Type'])
+    xml_df = pd.DataFrame(view_details_with_levels, columns=['View Name', 'Sub Zone', 'Issues Status', 'Issues Type'])
 
     xml_df['Clash ID'] = xml_df['View Name'].str.split('_').str[0]
-    xml_df['Level'] = xml_df['View Name'].str.split('_').str[1]
-    xml_df['Merge ID'] = xml_df['Clash ID'] + '_' + xml_df['Level']
 
-    merged_df = pd.merge(html_df, xml_df, on='Merge ID', how='inner', suffixes=('_html', '_xml'))
-    merged_df = merged_df.drop(columns=['Clash ID_xml', 'Level_xml'])
-    merged_df = merged_df.rename(columns={'Issues Status_xml': 'Issues Status', 'View Name_html': 'View Name','Clash ID_html':'Clash ID','Level_html':'Level'})
+    merged_df = pd.merge(html_df, xml_df, on='Clash ID', how='inner', suffixes=('_html', '_xml'))
+    #merged_df = merged_df.drop(columns=['Clash ID_xml'])
+    merged_df = merged_df.rename(columns={'Issues Status_xml': 'Issues Status', 'View Name_html': 'View Name','Clash ID_html':'Clash ID'})
     merged_df = merged_df[~merged_df['View Name'].str.contains('__', na=False)]
-    merged_df['Main Zone'] = main_zone
+    
     #merged_df['Merge ID'] = merged_df['Clash ID'] + '_' + merged_df['Sub Zone']
-    column_order = ["Merge ID","Clash ID", "View Name", "Date Found", "Main Zone", "Sub Zone", "Level", 
-                "Issues Type", "Issues Status", "Description", "Discipline", "Assign To", "Image",
-                 "View Name_Plan", "Image_Plan"]
+    column_order = ["Clash ID", "View Name", "Date Found", "Main Zone", "Sub Zone", "Location", "Level", 
+                "Issues Type", "Issues Status", "Description", "Discipline", "Assign To", "Image"]
+    #"View Name_Plan", "Image_Plan"
     merged_df = merged_df[column_order]
 
-    merged_df = merged_df.drop_duplicates(subset='Merge ID', keep='first')
+    merged_df = merged_df.drop_duplicates(subset='Clash ID', keep='first')
 
     if not merged_df.empty and "Issues Status" in merged_df.columns:
         available_statuses = merged_df["Issues Status"].unique().tolist()
@@ -629,8 +627,8 @@ merged_df_display = merged_df.copy()
 if "Image" in merged_df.columns:
     merged_df["ImageName"]=merged_df["Image"]
     merged_df["Image"] = merged_df["Image"].apply(lambda x: image_dict.get(x, "Image not found"))
-    merged_df["Image_Plan_Name"]=merged_df["Image_Plan"]
-    merged_df["Image_Plan"] = merged_df["Image_Plan"].apply(lambda x: image_dict.get(x, "Image not found"))
+    #merged_df["Image_Plan_Name"]=merged_df["Image_Plan"]
+    #merged_df["Image_Plan"] = merged_df["Image_Plan"].apply(lambda x: image_dict.get(x, "Image not found"))
 
 
 
@@ -701,10 +699,10 @@ if selected_option == "Option 1: Display without merging":
             with col1:
                 st.write(f"<b>{row['View Name']}</b>", unsafe_allow_html=True)
                 st.image(row['Image'], use_column_width=True)
-                if row['Image_Plan'] == "Image not found":
-                    st.write("Plan Image not found.")
-                else:
-                    st.image(row['Image_Plan'], use_column_width=True)
+                #if row['Image_Plan'] == "Image not found":
+                    #st.write("Plan Image not found.")
+                #else:
+                    #st.image(row['Image_Plan'], use_column_width=True)
             with col2:
                 st.write(f"<b>Issue Type:</b> {row['Issues Type']}", unsafe_allow_html=True)
                 st.write(f"<b>Issue Status:</b> {row['Issues Status']}", unsafe_allow_html=True)
@@ -790,7 +788,7 @@ elif selected_option == "Option 2: Display with merging":
                 merged_df[col] = None
 
         # Merge the uploaded report with the existing data
-        merged_data = merged_df.merge(df_report[['Merge ID', 'Notes', 'Usage', 'Date Found']], on='Merge ID', how='left')
+        merged_data = merged_df.merge(df_report[['Clash ID', 'Notes', 'Usage', 'Date Found']], on='Clash ID', how='left')
 
         notes_col = 'Notes_y' if 'Notes_y' in merged_data.columns else 'Notes'
         usage_col = 'Usage_y' if 'Usage_y' in merged_data.columns else 'Usage'
@@ -857,10 +855,10 @@ elif selected_option == "Option 2: Display with merging":
                 st.write(f"<b>{row['View Name']}</b>", unsafe_allow_html=True)
                 st.image(row['Image'], use_column_width=True)
 
-                if row['Image_Plan'] == "Image not found":
-                    st.write("Plan Image not found.")
-                else:
-                    st.image(row['Image_Plan'], use_column_width=True)
+                #if row['Image_Plan'] == "Image not found":
+                    #st.write("Plan Image not found.")
+                #else:
+                    #st.image(row['Image_Plan'], use_column_width=True)
             with col2:
                 st.write(f"<b>Issue Type:</b> {row['Issues Type']}", unsafe_allow_html=True)
                 st.write(f"<b>Issue Status:</b> {row['Issues Status']}", unsafe_allow_html=True)
