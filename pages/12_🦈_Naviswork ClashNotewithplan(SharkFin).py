@@ -503,7 +503,8 @@ def generate_pdf3(df, project_name):
         else:
             note_paragraphs = [Spacer(1, 0.1*inch)]  # Use a Spacer instead of plain string
 
-        data.append([str(idx), image_path, plan_image_path, details_list, note_paragraphs])
+        #data.append([str(idx), image_path, plan_image_path, details_list, note_paragraphs])
+        data.append([str(idx), image_path, image_path, details_list, note_paragraphs])
 
 
     page_width, page_height = A3 
