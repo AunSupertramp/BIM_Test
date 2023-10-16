@@ -11,21 +11,19 @@ from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import (SimpleDocTemplate, Table, TableStyle, Frame, 
+from reportlab.platypus import (Table, TableStyle, Frame, 
                                 PageTemplate, BaseDocTemplate, Image as ReportlabImage, 
                                 Paragraph, Spacer)
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from PIL import Image as pil_image
 import xml.etree.ElementTree as ET
-import zipfile
 import time
 from io import BytesIO
 import os
 import shutil
 import tempfile
 from bs4 import BeautifulSoup
-from PIL import Image as PIL_Image
 import datetime
 
 EXTRACTED_FLAG = False
