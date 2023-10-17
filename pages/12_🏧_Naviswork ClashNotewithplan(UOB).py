@@ -789,17 +789,14 @@ elif selected_option == "Option 2: Display with merging":
             if col not in merged_df.columns:
                 merged_df[col] = None
 
-        # Merge the uploaded report with the existing data
-        merged_data = merged_df.merge(df_report[['Merge ID', 'Notes', 'Usage', 'Date Found']], on='Merge ID', how='left')
 
-        notes_col = 'Notes_y' if 'Notes_y' in merged_data.columns else 'Notes'
-        usage_col = 'Usage_y' if 'Usage_y' in merged_data.columns else 'Usage'
-        date_found_col = 'Date Found_y' if 'Date Found_y' in merged_data.columns else 'Date Found'
-
-        # Update the original dataframe with the merged values
-        merged_df['Notes'] = merged_data[notes_col].combine_first(merged_df['Notes'])
-        merged_df['Usage'] = merged_data[usage_col].combine_first(merged_df['Usage'])
-        merged_df['Date Found'] = merged_data[date_found_col].combine_first(merged_df['Date Found'])
+        # Loop-based approach for merging
+        for idx, row in merged_df.iterrows():
+            match_row = df_report[df_report["Merge ID"] == row["Merge ID"]]
+            if not match_row.empty:
+                for col in ['Notes', 'Usage', 'Due Date']:
+                    if pd.notna(match_row[col].values[0]):
+                        merged_df.at[idx, col] = match_row[col].values[0]
                  
 
         if 'df' not in st.session_state:

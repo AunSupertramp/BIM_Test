@@ -38,14 +38,21 @@ pdfmetrics.registerFont(TTFont('Sarabun', r'./Font/THSarabunNew.ttf'))
 pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
 
 
+
 def adjust_convert_date_format(date_str):
+    # Check if the date is already in 'YYYY-MM-DD' format
     if len(date_str) == 10 and date_str[4] == '-' and date_str[7] == '-':
         return date_str
+    # Adjusted function to handle the date format 'YYMMDD'
     try:
-        formatted_date = date_str[:4] + "-" + date_str[4:6] + "-" + date_str[6:]
-        return formatted_date
+        formatted_date = "20" + date_str[:2] + "-" + date_str[2:4] + "-" + date_str[4:6]
+        return formatted_date  # We already have it in 'YYYY-MM-DD' format, so no need for extra conversion
     except:
         return None
+
+
+
+
 
 
 
@@ -780,24 +787,21 @@ elif selected_option == "Option 2: Display with merging":
     if not merged_df.empty and uploaded_files and merge_option:
         df_report = pd.read_csv(report_file, encoding='utf-8-sig')
         
-        for col in ['Notes', 'Usage', 'Date Found']:
+        for col in ['Notes', 'Usage', 'Due Date']:
             if col not in df_report.columns:
                 df_report[col] = None
             if col not in merged_df.columns:
                 merged_df[col] = None
 
-        # Merge the uploaded report with the existing data
-        merged_data = merged_df.merge(df_report[['Clash ID', 'Notes', 'Usage', 'Date Found']], on='Clash ID', how='left')
+        # Loop-based approach for merging
+        for idx, row in merged_df.iterrows():
+            match_row = df_report[df_report["Clash ID"] == row["Clash ID"]]
+            if not match_row.empty:
+                for col in ['Notes', 'Usage', 'Due Date']:
+                    if pd.notna(match_row[col].values[0]):
+                        merged_df.at[idx, col] = match_row[col].values[0]
 
-        notes_col = 'Notes_y' if 'Notes_y' in merged_data.columns else 'Notes'
-        usage_col = 'Usage_y' if 'Usage_y' in merged_data.columns else 'Usage'
-        date_found_col = 'Date Found_y' if 'Date Found_y' in merged_data.columns else 'Date Found'
 
-        # Update the original dataframe with the merged values
-        merged_df['Notes'] = merged_data[notes_col].combine_first(merged_df['Notes'])
-        merged_df['Usage'] = merged_data[usage_col].combine_first(merged_df['Usage'])
-        merged_df['Date Found'] = merged_data[date_found_col].combine_first(merged_df['Date Found'])
-                 
 
         if 'df' not in st.session_state:
             st.session_state.df = merged_df.copy()

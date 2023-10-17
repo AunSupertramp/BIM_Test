@@ -50,12 +50,7 @@ def adjust_convert_date_format(date_str):
     except:
         return None
 
-from bs4 import BeautifulSoup
-import pandas as pd
 
-def adjust_convert_date_format(date_str):
-    # Placeholder for the date adjustment function
-    return date_str
 
 def extract_grid_value(view_name):
     """Extract the grid value from the view name."""
@@ -485,20 +480,20 @@ def generate_pdf3(df, project_name):
             else:
                 image_stream = BytesIO(img_data.getvalue())
             img_data.seek(0)  # Reset the file pointer to the start
-            image_path = ReportlabImage(image_stream, width=2.4*inch, height=2.4*inch)
+            image_path = ReportlabImage(image_stream, width=2.8*inch, height=2.8*inch)
         else:
             image_path = "Image Not Found"
 
         if isinstance(row['Image_Plan'], BytesIO):
             plan_image_stream = row['Image_Plan']
-            plan_image_path = ReportlabImage(plan_image_stream, width=2.4*inch, height=2.4*inch)
+            plan_image_path = ReportlabImage(plan_image_stream, width=2.8*inch, height=2.8*inch)
         else:
             plan_image_path = "Plan Image Not Found"
 
         # Handling the Section image
         if isinstance(row['Image_Section'], BytesIO):
             section_image_stream = row['Image_Section']
-            section_image_path = ReportlabImage(section_image_stream, width=2.4*inch, height=2.4*inch)
+            section_image_path = ReportlabImage(section_image_stream, width=2.8*inch, height=2.8*inch)
         else:
             section_image_path = "Section Image Not Found"
 
@@ -824,18 +819,14 @@ elif selected_option == "Option 2: Display with merging":
                 df_report[col] = None
             if col not in merged_df.columns:
                 merged_df[col] = None
-
-        # Merge the uploaded report with the existing data
-        merged_data = merged_df.merge(df_report[['Clash ID', 'Notes', 'Usage', 'Date Found']], on='Clash ID', how='left')
-
-        notes_col = 'Notes_y' if 'Notes_y' in merged_data.columns else 'Notes'
-        usage_col = 'Usage_y' if 'Usage_y' in merged_data.columns else 'Usage'
-        date_found_col = 'Date Found_y' if 'Date Found_y' in merged_data.columns else 'Date Found'
-
-        # Update the original dataframe with the merged values
-        merged_df['Notes'] = merged_data[notes_col].combine_first(merged_df['Notes'])
-        merged_df['Usage'] = merged_data[usage_col].combine_first(merged_df['Usage'])
-        merged_df['Date Found'] = merged_data[date_found_col].combine_first(merged_df['Date Found'])
+                
+        # Loop-based approach for merging
+        for idx, row in merged_df.iterrows():
+            match_row = df_report[df_report["Clash ID"] == row["Clash ID"]]
+            if not match_row.empty:
+                for col in ['Notes', 'Usage', 'Due Date']:
+                    if pd.notna(match_row[col].values[0]):
+                        merged_df.at[idx, col] = match_row[col].values[0]
                  
         if 'df' not in st.session_state:
             st.session_state.df = merged_df.copy()
