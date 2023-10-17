@@ -457,13 +457,13 @@ def generate_pdf3(df, project_name):
             else:
                 image_stream = BytesIO(img_data.getvalue())
             img_data.seek(0)  # Reset the file pointer to the start
-            image_path = ReportlabImage(image_stream, width=2.4*inch, height=2.4*inch)
+            image_path = ReportlabImage(image_stream, width=4*inch, height=4*inch)
         else:
             image_path = "Image Not Found"
 
         if isinstance(row['Image_Plan'], BytesIO):
             plan_image_stream = row['Image_Plan']
-            plan_image_path = ReportlabImage(plan_image_stream, width=2.4*inch, height=2.4*inch)
+            plan_image_path = ReportlabImage(plan_image_stream, width=4*inch, height=4*inch)
         else:
             plan_image_path = "Plan Image Not Found"
 
@@ -508,7 +508,7 @@ def generate_pdf3(df, project_name):
 
 
     page_width, page_height = A3 
-    col_widths = [(0.05 * page_width), (0.255 * page_width), (0.255* page_width),  (0.2* page_width), (0.35* page_width)]
+    col_widths = [(0.05 * page_width), (0.38 * page_width), (0.38* page_width),  (0.2* page_width), (0.35* page_width)]
     table_style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.blue),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
