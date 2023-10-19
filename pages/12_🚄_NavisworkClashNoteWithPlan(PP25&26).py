@@ -388,6 +388,7 @@ def generate_pdf2(df, project_name):
             f"<b>Main Zone:</b> <l>{row['Main Zone']}</l>",
             f"<b>Sub Zone:</b> <l>{row['Sub Zone']}</l>",
             f"<b>Level:</b> <l>{row['Level']}</l>",
+            f"<b>Grid:</b> <l>{row['Grid']}</l>",
             f"<b>Description:</b> <l>{row['Description']}</l>",
             f"<b>Discipline:</b> <l>{row['Discipline']}</l>",
             f"<b>Issue Type:</b> <l>{row['Issues Type']}</l>",
@@ -505,6 +506,7 @@ def generate_pdf3(df, project_name):
             f"<b>Main Zone:</b> <l>{row['Main Zone']}</l>",
             f"<b>Sub Zone:</b> <l>{row['Sub Zone']}</l>",
             f"<b>Level:</b> <l>{row['Level']}</l>",
+            f"<b>Grid:</b> <l>{row['Grid']}</l>",
             f"<b>Description:</b> <l>{row['Description']}</l>",
             f"<b>Discipline:</b> <l>{row['Discipline']}</l>",
             f"<b>Issue Type:</b> <l>{row['Issues Type']}</l>",
@@ -696,7 +698,7 @@ if selected_option == "Option 1: Display without merging":
 
         st.sidebar.header("Filter Options")
         filter_cols = ['Clash ID', 'View Name', 'Main Zone', 'Sub Zone', 'Level', 
-                    'Issues Type', 'Issues Status', 'Discipline', 'Assign To', 'Usage']
+                    'Issues Type', 'Issues Status', 'Discipline', 'Assign To', 'Usage','Grid']
         selected_values = {}
         for col in filter_cols:
             unique_values = df[col].unique().tolist()
@@ -846,7 +848,7 @@ elif selected_option == "Option 2: Display with merging":
 
         st.sidebar.header("Filter Options")
         filter_cols = ['Clash ID', 'View Name', 'Main Zone', 'Sub Zone', 'Level', 
-                    'Issues Type', 'Issues Status', 'Discipline', 'Assign To', 'Usage']
+                    'Issues Type', 'Issues Status', 'Discipline', 'Assign To', 'Usage','Grid']
         selected_values = {}
         for col in filter_cols:
             unique_values = df[col].unique().tolist()
