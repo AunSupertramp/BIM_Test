@@ -21,13 +21,13 @@ def main():
 	Clash detection is a technique used in BIM (Building Information Modeling) that speeds up projects by detecting conflicts between various models during the design process. It allows architects and contractors to avoid the impact of multi-level design revisions, which can result in budget overruns and project delays.
 	
 	### App Content
-	- Generate Clash Report from CSV
-	- View & Edit Report 
+	- Generate Clash Report from Naviswork Report (HTML XML JPEG ZIP)
+	- View & Edit Report (Add Note)
 
 	### Contact
 
 	- [Facebook](https://www.facebook.com/siwawut.pattanasri/)
-	- Line ID: atomsiwawut
+	- :green_book: lineID : atomsiwawut
 	- 📧: Siwawut.Pattanasri@aurecongroup.com
 	- ☎️: 0828952663
 	  		
