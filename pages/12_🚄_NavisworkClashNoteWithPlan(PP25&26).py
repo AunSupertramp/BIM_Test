@@ -42,11 +42,20 @@ pdfmetrics.registerFont(TTFont('Sarabun-Bold', r'./Font/THSarabunNew Bold.ttf'))
 def adjust_convert_date_format(date_str):
     # Check if the date is already in 'YYYY-MM-DD' format
     if len(date_str) == 10 and date_str[4] == '-' and date_str[7] == '-':
-        return date_str
+        # Convert 'YYYY-MM-DD' to 'YYYYMMDD'
+        date_str = date_str.replace("-", "")
+
     # Adjusted function to handle the date format 'YYMMDD'
     try:
-        formatted_date = "20" + date_str[:2] + "-" + date_str[2:4] + "-" + date_str[4:6]
-        return formatted_date  # We already have it in 'YYYY-MM-DD' format, so no need for extra conversion
+        # If the string is in 'YYMMDD' format, convert it to 'YYYYMMDD'
+        if len(date_str) == 6:
+            date_str = "20" + date_str
+
+        # Now convert 'YYYYMMDD' to a datetime object
+        date_obj = datetime.datetime.strptime(date_str, "%Y%m%d")
+
+        # Format to 'DD/MM/YYYY'
+        return date_obj.strftime("%d/%m/%Y")
     except:
         return None
 
@@ -203,7 +212,7 @@ DATE_FORMATS = ["%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"]
 def try_parsing_date(text):
     for fmt in DATE_FORMATS:
         try:
-            return pd.to_datetime(text, format=fmt).strftime("%m/%d/%Y")
+            return pd.to_datetime(text, format=fmt).strftime("%d/%m/%Y")
         except ValueError:
             pass
     # If all formats fail, return the original string
@@ -775,8 +784,9 @@ if selected_option == "Option 1: Display without merging":
 
             if 'Due Date' not in df.columns:
                 df['Due Date'] = None
-            df_view.at[idx, 'Due Date'] = due_date
-            df.at[idx, 'Due Date'] = due_date
+            formatted_due_date = due_date.strftime("%d/%m/%Y")
+            df_view.at[idx, 'Due Date'] = formatted_due_date
+            df.at[idx, 'Due Date'] = formatted_due_date
         st.markdown("---")
         
     if st.button("Export CSV"):
@@ -927,8 +937,9 @@ elif selected_option == "Option 2: Display with merging":
 
             if 'Due Date' not in df.columns:
                 df['Due Date'] = None
-            df_view.at[idx, 'Due Date'] = due_date
-            df.at[idx, 'Due Date'] = due_date
+            formatted_due_date = due_date.strftime("%d/%m/%Y")
+            df_view.at[idx, 'Due Date'] = formatted_due_date
+            df.at[idx, 'Due Date'] = formatted_due_date
         st.markdown("---")
         
     if st.button("Export CSV"):
