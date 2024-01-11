@@ -287,7 +287,7 @@ DATE_FORMATS = ["%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"]
 def try_parsing_date(text):
     for fmt in DATE_FORMATS:
         try:
-            return pd.to_datetime(text, format=fmt).strftime("%d/%m/%Y")
+            return pd.to_datetime(text, format=fmt).strftime("%m/%d/%Y")
         except ValueError:
             pass
     # If all formats fail, return the original string
@@ -737,9 +737,8 @@ if selected_option == "Option 1: Display without merging":
 
                 if 'Due Date' not in df.columns:
                     df['Due Date'] = None
-                formatted_due_date = due_date.strftime("%d/%m/%Y")
-                df_view.at[idx, 'Due Date'] = formatted_due_date
-                df.at[idx, 'Due Date'] = formatted_due_date
+                df_view.at[idx, 'Due Date'] = due_date
+                df.at[idx, 'Due Date'] = due_date
             st.markdown("---")
 
 
@@ -891,9 +890,8 @@ elif selected_option == "Option 2: Display with merging":
 
                 if 'Due Date' not in df.columns:
                     df['Due Date'] = None
-                formatted_due_date = due_date.strftime("%d/%m/%Y")
-                df_view.at[idx, 'Due Date'] = formatted_due_date
-                df.at[idx, 'Due Date'] = formatted_due_date
+                df_view.at[idx, 'Due Date'] = due_date
+                df.at[idx, 'Due Date'] = due_date
             st.markdown("---")
 
 
