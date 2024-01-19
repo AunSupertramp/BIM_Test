@@ -124,14 +124,9 @@ def process_html_content(html_content):
     df=filtered_no_asterisk_df
     view_name_components = df['View Name'].str.split('_', expand=True)
     df['Clash ID'] = view_name_components[0]
-    df['Date Found'] = view_name_components[1]
-    #df['Main Zone'] = view_name_components[2]
-    df['Location'] = view_name_components[2]
-    df['Level'] = view_name_components[3]
-    #df['Discipline'] = view_name_components[4]
-    df['Description'] = view_name_components[4]
-    df['Assign To'] = view_name_components[5]
-    df['Date Found'] = df['Date Found'].apply(adjust_convert_date_format)
+    df['Description'] = view_name_components[1]
+    df['Level'] = view_name_components[2]
+    #df['Date Found'] = df['Date Found'].apply(adjust_convert_date_format)
     df['Issues Status'] = ""
     
 
@@ -156,10 +151,10 @@ def extract_view_details_with_levels(root):
         
         if element.tag == 'view':
             view_name = element.attrib.get('name', None)
-            issues_type = folder_names[-3] if len(folder_names) >= 3 else None
-            issues_status = folder_names[-2] if len(folder_names) >= 2 else None
-            Discipline = folder_names[-1] if folder_names else None
-            results.append((view_name, Discipline, issues_status, issues_type))
+            issues_status = folder_names[-3] if len(folder_names) >= 3 else None
+            issues_type = folder_names[-2] if len(folder_names) >= 2 else None
+            Group = folder_names[-1] if folder_names else None
+            results.append((view_name, Group, issues_status, issues_type))
         else:
             current_folder_name = element.attrib.get('name', parent_name)
             stack.extend([(child, folder_names + [current_folder_name], current_folder_name) for child in element])
@@ -218,7 +213,7 @@ def generate_pdf(df, project_name):
     )
 
     table_style = [
-        ('BACKGROUND', (0, 0), (-1, 0), '#a31f37'),
+        ('BACKGROUND', (0, 0), (-1, 0), '#4F709C'),
         ('TEXTCOLOR', (0, 0), (-1, 0), '#e2dbdc'),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('BACKGROUND', (0, 1), (-1, -1), colors.white),
@@ -231,8 +226,8 @@ def generate_pdf(df, project_name):
     ]
 
     header_data = [Paragraph(cell, header_style) for cell in df.columns.tolist()]
-    column_order = ["Clash ID", "Image", "View Name", "Date Found", "Discipline", "Location","Level",
-                    "Issues Type", "Issues Status", "Description", "Assign To"]
+    column_order = ["Clash ID", "Image", "View Name", "Group","Level",
+                    "Issues Type", "Issues Status", "Description"]
     header_data_reordered = [header_data[df.columns.get_loc(col)] for col in column_order]
     content = []
 
@@ -252,20 +247,18 @@ def generate_pdf(df, project_name):
             Paragraph(str(row["Clash ID"]), cell_style),
             img,
             Paragraph(str(row["View Name"]), cell_style),
-            Paragraph(str(row["Date Found"]), cell_style),
-            Paragraph(str(row["Discipline"]), cell_style),
-            Paragraph(str(row["Location"]), cell_style),
+            Paragraph(str(row["Group"]), cell_style),
             Paragraph(str(row["Level"]), cell_style),
             Paragraph(str(row["Issues Type"]), cell_style),
             Paragraph(str(row["Issues Status"]), cell_style),
             Paragraph(str(row["Description"]), cell_style),
-            Paragraph(str(row["Assign To"]), cell_style),
+       
             
         ]
         content.append(row_data)
 
     data = [header_data_reordered] + content
-    col_widths = [100, 170, 80, 80, 80, 80, 80, 80, 80, 80, 90, 80, 80]
+    col_widths = [100, 170, 120, 80, 80, 80, 80, 80, 120]
     table = Table(data, colWidths=col_widths, repeatRows=1, style=table_style)
     elems = [table]
     pdf.build(elems)
@@ -380,9 +373,7 @@ def generate_pdf2(df, project_name):
         details_list = []
         texts = [
             f"<b>Clash ID:</b> <l>{row['Clash ID']}</l>",
-            f"<b>Discipline:</b> <l>{row['Discipline']}</l>",
-            f"<b>Date Found:</b> <l>{row['Date Found']}</l>",
-            f"<b>Location:</b> <l>{row['Location']}</l>",
+            f"<b>Group:</b> <l>{row['Group']}</l>",
             f"<b>Level:</b> <l>{row['Level']}</l>",
             f"<b>Description:</b> <l>{row['Description']}</l>",
             f"<b>Issue Type:</b> <l>{row['Issues Type']}</l>",
@@ -411,7 +402,7 @@ def generate_pdf2(df, project_name):
     page_width, page_height = A4 
     col_widths = [(0.05 * page_width), (0.3 * page_width), (0.3* page_width), (0.3* page_width)]
     table_style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), '#a31f37'),
+        ('BACKGROUND', (0, 0), (-1, 0), '#4F709C'),
         ('TEXTCOLOR', (0, 0), (-1, 0), '#e2dbdc'),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
@@ -493,9 +484,7 @@ def generate_pdf3(df, project_name):
         details_list = []
         texts = [
             f"<b>Clash ID:</b> <l>{row['Clash ID']}</l>",
-            f"<b>Discipline:</b> <l>{row['Discipline']}</l>",
-            f"<b>Date Found:</b> <l>{row['Date Found']}</l>",
-            f"<b>Location:</b> <l>{row['Location']}</l>",
+            f"<b>Group:</b> <l>{row['Group']}</l>",
             f"<b>Level:</b> <l>{row['Level']}</l>",
             f"<b>Description:</b> <l>{row['Description']}</l>",
             f"<b>Issue Type:</b> <l>{row['Issues Type']}</l>",
@@ -525,7 +514,7 @@ def generate_pdf3(df, project_name):
     page_width, page_height = A3 
     col_widths = [(0.05 * page_width), (0.255 * page_width), (0.255* page_width),  (0.2* page_width), (0.35* page_width)]
     table_style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), '#a31f37'),
+        ('BACKGROUND', (0, 0), (-1, 0), '#4F709C'),
         ('TEXTCOLOR', (0, 0), (-1, 0), '#e2dbdc'),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
@@ -548,8 +537,8 @@ def generate_pdf3(df, project_name):
 
 
 
-st.title('Naviswork Clash Issues Report & Note (PANB)')
-project_name = st.text_input("Enter Project Name:", value="Plaza Athénée Nobu Hotel New York")
+st.title('Naviswork Clash Issues Report & Note (Dusit Thani)')
+project_name = st.text_input("Enter Project Name:", value="Dusit Thani")
 selected_option = st.radio("Select a process:", ["Option 1: Display without merging", "Option 2: Display with merging"])
 merged_df = pd.DataFrame()
 df_view = pd.DataFrame() 
@@ -578,7 +567,7 @@ if html_file and xml_file:
     tree = ET.parse(xml_file)
     root = tree.getroot()
     view_details_with_levels = extract_view_details_with_levels(root)
-    xml_df = pd.DataFrame(view_details_with_levels, columns=['View Name', 'Discipline', 'Issues Status', 'Issues Type'])
+    xml_df = pd.DataFrame(view_details_with_levels, columns=['View Name', 'Group', 'Issues Status', 'Issues Type'])
 
     xml_df['Clash ID'] = xml_df['View Name'].str.split('_').str[0]
 
@@ -587,9 +576,9 @@ if html_file and xml_file:
     merged_df = merged_df.rename(columns={'Issues Status_xml': 'Issues Status', 'View Name_html': 'View Name','Clash ID_html':'Clash ID'})
     merged_df = merged_df[~merged_df['View Name'].str.contains('__', na=False)]
     
-    #merged_df['Merge ID'] = merged_df['Clash ID'] + '_' + merged_df['Discipline']
-    column_order = ["Clash ID", "View Name", "Date Found","Discipline", "Location", "Level", 
-                "Issues Type", "Issues Status", "Description","Assign To", "Image"]
+    #merged_df['Merge ID'] = merged_df['Clash ID'] + '_' + merged_df['Group']
+    column_order = ["Clash ID", "View Name","Group", "Level", 
+                "Issues Type", "Issues Status", "Description", "Image"]
     #"View Name_Plan", "Image_Plan"
     merged_df = merged_df[column_order]
 
@@ -672,11 +661,11 @@ if selected_option == "Option 1: Display without merging":
         df["Notes"].fillna("", inplace=True)
         df["Usage"].fillna("Tracking", inplace=True)
         #df["Date Found"] = pd.to_datetime(df["Date Found"]).dt.strftime("%m/%d/%Y")
-        df["Date Found"] = df["Date Found"].apply(try_parsing_date)
+        #df["Date Found"] = df["Date Found"].apply(try_parsing_date)
         
 
         st.sidebar.header("Filter Options")
-        filter_cols = ['Clash ID', 'View Name', 'Discipline', 'Level', 
+        filter_cols = ['Clash ID', 'View Name', 'Group', 'Level', 
                     'Issues Type', 'Issues Status', 'Assign To', 'Usage']
         selected_values = {}
         for col in filter_cols:
@@ -761,15 +750,7 @@ if selected_option == "Option 1: Display without merging":
             file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_CSV-Note_{project_name}.csv",
             mime="text/csv"
         )
-    if st.button("Generate ReportA3 Wide"):
-        pdf_data = generate_pdf(df_view, project_name)
-        st.download_button(
-            label="Download PDF Report",
-            data=pdf_data,
-            file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReport_{project_name}.pdf",
-            mime="application/pdf"
-        )
-    if st.button("Generate ReportA4 With Note"):
+    if st.button("Generate ReportA4"):
         pdf_data = generate_pdf2(df_view, project_name)
         st.download_button(
             label="Download PDF Report",
@@ -777,7 +758,16 @@ if selected_option == "Option 1: Display without merging":
             file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReport_{project_name}.pdf",
             mime="application/pdf"
         )
-        
+
+    if st.button("Generate Report With Plan"):
+        pdf_data = generate_pdf3(df_view, project_name)
+        st.download_button(
+            label="Download PDF Report",
+            data=pdf_data,
+            file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReportWithPlan_{project_name}.pdf",
+            mime="application/pdf"
+        )
+
 
 
 
@@ -826,7 +816,7 @@ elif selected_option == "Option 2: Display with merging":
         
 
         st.sidebar.header("Filter Options")
-        filter_cols = ['Clash ID', 'View Name', 'Discipline', 'Level', 
+        filter_cols = ['Clash ID', 'View Name', 'Group', 'Level', 
                     'Issues Type', 'Issues Status','Assign To', 'Usage']
         selected_values = {}
         for col in filter_cols:
@@ -913,15 +903,7 @@ elif selected_option == "Option 2: Display with merging":
             file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_CSV-Note_{project_name}.csv",
             mime="text/csv"
         )
-    if st.button("Generate ReportA3 Wide"):
-        pdf_data = generate_pdf(df_view, project_name)
-        st.download_button(
-            label="Download PDF Report",
-            data=pdf_data,
-            file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReport_{project_name}.pdf",
-            mime="application/pdf"
-        )
-    if st.button("Generate ReportA4 With Note"):
+    if st.button("Generate ReportA4"):
         pdf_data = generate_pdf2(df_view, project_name)
         st.download_button(
             label="Download PDF Report",
@@ -930,3 +912,11 @@ elif selected_option == "Option 2: Display with merging":
             mime="application/pdf"
         )
         
+    if st.button("Generate Report With Plan"):
+        pdf_data = generate_pdf3(df_view, project_name)
+        st.download_button(
+            label="Download PDF Report",
+            data=pdf_data,
+            file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReportWithPlan_{project_name}.pdf",
+            mime="application/pdf"
+        )
