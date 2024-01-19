@@ -257,7 +257,7 @@ def generate_pdf(df, project_name):
         content.append(row_data)
 
     data = [header_data_reordered] + content
-    col_widths = [100, 170, 120, 80, 80, 80, 80, 80, 120]
+    col_widths = [100, 170, 120, 80, 80, 80, 80, 120]
     table = Table(data, colWidths=col_widths, repeatRows=1, style=table_style)
     elems = [table]
     pdf.build(elems)
