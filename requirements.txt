@@ -1,5 +1,5 @@
 numpy
-pandas
+pandas==2.1.0
 scipy
 matplotlib
 streamlit
