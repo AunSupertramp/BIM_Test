@@ -372,7 +372,6 @@ def generate_pdf2(df, project_name):
             f"<b>Discipline:</b> <l>{row['Discipline']}</l>",
             f"<b>Issue Type:</b> <l>{row['Issues Type']}</l>",
             f"<b>Issue Status:</b> <l>{row['Issues Status']}</l>",
-            f"<b>Due Date:</b> <l>{row['Due Date']}</l>"
         ]
         for text in texts:
             bold_part, light_part = formatted_paragraph(text, styles)
@@ -486,7 +485,6 @@ def generate_pdf3(df, project_name):
             f"<b>Discipline:</b> <l>{row['Discipline']}</l>",
             f"<b>Issue Type:</b> <l>{row['Issues Type']}</l>",
             f"<b>Issue Status:</b> <l>{row['Issues Status']}</l>",
-            f"<b>Due Date:</b> <l>{row['Due Date']}</l>"
         ]
         for text in texts:
             bold_part, light_part = formatted_paragraph(text, styles)
@@ -640,8 +638,7 @@ if 'notes' not in st.session_state:
     st.session_state.notes = {}
 if 'usage' not in st.session_state:
     st.session_state.usage = {}
-if 'due_dates' not in st.session_state:  # Initialize session state for due dates
-    st.session_state.due_dates = {}
+
 
 
 
@@ -731,14 +728,7 @@ if selected_option == "Option 1: Display without merging":
                     #df.at[idx, 'Usage'] = 'Resolved'
 
 
-                due_date_key = f"due_date_{row['Clash ID']}_{idx}"
-                initial_due_date = st.session_state.due_dates.get(due_date_key, datetime.date.today() if pd.isnull(row.get('Due Date')) else pd.to_datetime(row['Due Date']).date())
-                due_date = st.date_input(f"Select due date for {row['Clash ID']}", value=initial_due_date, key=due_date_key)
 
-                if 'Due Date' not in df.columns:
-                    df['Due Date'] = None
-                df_view.at[idx, 'Due Date'] = due_date
-                df.at[idx, 'Due Date'] = due_date
             st.markdown("---")
 
 
@@ -794,7 +784,7 @@ elif selected_option == "Option 2: Display with merging":
         for idx, row in merged_df.iterrows():
             match_row = df_report[df_report["Merge ID"] == row["Merge ID"]]
             if not match_row.empty:
-                for col in ['Notes', 'Usage', 'Due Date']:
+                for col in ['Notes', 'Usage']:
                     if pd.notna(match_row[col].values[0]):
                         merged_df.at[idx, col] = match_row[col].values[0]
                  
@@ -884,14 +874,6 @@ elif selected_option == "Option 2: Display with merging":
                     #df.at[idx, 'Usage'] = 'Resolved'
 
 
-                due_date_key = f"due_date_{row['Clash ID']}_{idx}"
-                initial_due_date = st.session_state.due_dates.get(due_date_key, datetime.date.today() if pd.isnull(row.get('Due Date')) else pd.to_datetime(row['Due Date']).date())
-                due_date = st.date_input(f"Select due date for {row['Clash ID']}", value=initial_due_date, key=due_date_key)
-
-                if 'Due Date' not in df.columns:
-                    df['Due Date'] = None
-                df_view.at[idx, 'Due Date'] = due_date
-                df.at[idx, 'Due Date'] = due_date
             st.markdown("---")
 
 
