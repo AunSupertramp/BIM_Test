@@ -29,7 +29,7 @@ import datetime
 EXTRACTED_FLAG = False
 
 
-st.set_page_config(page_title='Naviswork Clash Issues Report & Note (Resi)', page_icon=":hotel:", layout='centered')
+st.set_page_config(page_title='Naviswork Clash Issues Report & Note (DMK)', page_icon=":airplane_departure:", layout='centered')
 
 css_file = "styles/main.css"
 with open(css_file) as f:
@@ -90,10 +90,10 @@ def process_html_to_dfs(html_content):
     view_name_components1 = df1['View Name'].str.split('_', expand=True)
     #view_name_components2 = df2['View Name'].str.split('_', expand=True)
     df1['Clash ID'] = view_name_components1[0]
-    df1['Level'] = view_name_components1[1]
+    df1['Group'] = view_name_components1[2]
     #df2['Clash ID'] = view_name_components2[0]
     #df2['Level'] = view_name_components2[1]
-    df1['Merge ID'] = df1['Clash ID'] + '_' + df1['Level']
+    df1['Merge ID'] = df1['Clash ID'] + '_' + df1['Group']
     #df2['Merge ID'] = df2['Clash ID'] + '_' + df2['Level']
 
 
@@ -124,9 +124,14 @@ def process_html_content(html_content):
     df=filtered_no_asterisk_df
     view_name_components = df['View Name'].str.split('_', expand=True)
     df['Clash ID'] = view_name_components[0]
-    df['Description'] = view_name_components[1]
-    df['Level'] = view_name_components[2]
-    #df['Date Found'] = df['Date Found'].apply(adjust_convert_date_format)
+    df['Date Found'] = view_name_components[1]
+    df['Group'] = view_name_components[2]
+    df['Level'] = view_name_components[3]
+    df['Location'] = view_name_components[4]
+    df['Discipline'] = view_name_components[5]
+    df['Description'] = view_name_components[6]
+    df['Assign To'] = view_name_components[7]
+    df['Date Found'] = df['Date Found'].apply(adjust_convert_date_format)
     df['Issues Status'] = ""
     
 
@@ -151,10 +156,9 @@ def extract_view_details_with_levels(root):
         
         if element.tag == 'view':
             view_name = element.attrib.get('name', None)
-            Zone = folder_names[-3] if len(folder_names) >= 3 else None
-            issues_status = folder_names[-2] if len(folder_names) >= 2 else None
-            issues_type = folder_names[-1] if folder_names else None
-            results.append((view_name, Zone, issues_status, issues_type))
+            issues_type = folder_names[-2] if len(folder_names) >= 2 else None
+            issues_status = folder_names[-1] if len(folder_names) >= 1 else None
+            results.append((view_name, issues_status, issues_type))
         else:
             current_folder_name = element.attrib.get('name', parent_name)
             stack.extend([(child, folder_names + [current_folder_name], current_folder_name) for child in element])
@@ -226,7 +230,7 @@ def generate_pdf(df, project_name):
     ]
 
     header_data = [Paragraph(cell, header_style) for cell in df.columns.tolist()]
-    column_order = ["Clash ID", "Image", "View Name", "Zone","Level",
+    column_order = ["Clash ID", "Image", "View Name", "Group","Level",
                     "Issues Type", "Issues Status", "Description"]
     header_data_reordered = [header_data[df.columns.get_loc(col)] for col in column_order]
     content = []
@@ -247,7 +251,7 @@ def generate_pdf(df, project_name):
             Paragraph(str(row["Clash ID"]), cell_style),
             img,
             Paragraph(str(row["View Name"]), cell_style),
-            Paragraph(str(row["Zone"]), cell_style),
+            Paragraph(str(row["Group"]), cell_style),
             Paragraph(str(row["Level"]), cell_style),
             Paragraph(str(row["Issues Type"]), cell_style),
             Paragraph(str(row["Issues Status"]), cell_style),
@@ -372,7 +376,7 @@ def generate_pdf2(df, project_name):
         details_list = []
         texts = [
             f"<b>Clash ID:</b> <l>{row['Clash ID']}</l>",
-            f"<b>Zone:</b> <l>{row['Zone']}</l>",
+            f"<b>Group:</b> <l>{row['Group']}</l>",
             f"<b>Level:</b> <l>{row['Level']}</l>",
             f"<b>Description:</b> <l>{row['Description']}</l>",
             f"<b>Issue Type:</b> <l>{row['Issues Type']}</l>",
@@ -483,7 +487,7 @@ def generate_pdf3(df, project_name):
         details_list = []
         texts = [
             f"<b>Clash ID:</b> <l>{row['Clash ID']}</l>",
-            f"<b>Zone:</b> <l>{row['Zone']}</l>",
+            f"<b>Group:</b> <l>{row['Group']}</l>",
             f"<b>Level:</b> <l>{row['Level']}</l>",
             f"<b>Description:</b> <l>{row['Description']}</l>",
             f"<b>Issue Type:</b> <l>{row['Issues Type']}</l>",
@@ -536,8 +540,8 @@ def generate_pdf3(df, project_name):
 
 
 
-st.title('Naviswork Clash Issues Report & Note (Dusit Thani)')
-project_name = st.text_input("Enter Project Name:", value="Dusit Thani")
+st.title('Naviswork Clash Issues Report & Note (DMK)')
+project_name = st.text_input("Enter Project Name:", value="DMK")
 selected_option = st.radio("Select a process:", ["Option 1: Display without merging", "Option 2: Display with merging"])
 merged_df = pd.DataFrame()
 df_view = pd.DataFrame() 
@@ -566,7 +570,7 @@ if html_file and xml_file:
     tree = ET.parse(xml_file)
     root = tree.getroot()
     view_details_with_levels = extract_view_details_with_levels(root)
-    xml_df = pd.DataFrame(view_details_with_levels, columns=['View Name', 'Zone', 'Issues Status', 'Issues Type'])
+    xml_df = pd.DataFrame(view_details_with_levels, columns=['View Name', 'Issues Status', 'Issues Type'])
 
     xml_df['Clash ID'] = xml_df['View Name'].str.split('_').str[0]
 
@@ -575,9 +579,8 @@ if html_file and xml_file:
     merged_df = merged_df.rename(columns={'Issues Status_xml': 'Issues Status', 'View Name_html': 'View Name','Clash ID_html':'Clash ID'})
     merged_df = merged_df[~merged_df['View Name'].str.contains('__', na=False)]
     
-    #merged_df['Merge ID'] = merged_df['Clash ID'] + '_' + merged_df['Zone']
-    column_order = ["Clash ID", "View Name","Zone", "Level", 
-                "Issues Type", "Issues Status", "Description", "Image"]
+    #merged_df['Merge ID'] = merged_df['Clash ID'] + '_' + merged_df['Group']
+    column_order = ["Clash ID", "View Name","Date Found","Issues Type", "Issues Status","Group","Assign To", "Level", "Location", "Discipline", "Description", "Image"]
     #"View Name_Plan", "Image_Plan"
     merged_df = merged_df[column_order]
 
@@ -664,7 +667,7 @@ if selected_option == "Option 1: Display without merging":
         
 
         st.sidebar.header("Filter Options")
-        filter_cols = ['Clash ID', 'View Name', 'Zone', 'Level', 
+        filter_cols = ['Clash ID', 'View Name', 'Group', 'Level', 
                     'Issues Type', 'Issues Status', 'Assign To', 'Usage']
         selected_values = {}
         for col in filter_cols:
@@ -815,7 +818,7 @@ elif selected_option == "Option 2: Display with merging":
         
 
         st.sidebar.header("Filter Options")
-        filter_cols = ['Clash ID', 'View Name', 'Zone', 'Level', 
+        filter_cols = ['Clash ID', 'View Name', 'Group', 'Level', 
                     'Issues Type', 'Issues Status','Assign To', 'Usage']
         selected_values = {}
         for col in filter_cols:
