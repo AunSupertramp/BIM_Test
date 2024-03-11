@@ -81,23 +81,15 @@ def process_html_to_dfs(html_content):
     full_df = pd.DataFrame(data, columns=['Clash ID', 'View Name', 'Image'])
     
     # Filter the rows based on the view name patterns
-
-    df1 = full_df[full_df['View Name'].str.contains("_View \(Plan\)")]
-    df2 = full_df[full_df['View Name'].str.contains("_View \(Section\)")]
-
-    df1 = df1[df1['View Name'].str.count('_') > 1]
-
+    # Using regex=True to escape special characters properly
+    df1 = full_df[full_df['View Name'].str.contains("\(Plan\)")]
+    df1 = df1[df1['View Name'].str.count('_') <= 1]
     view_name_components1 = df1['View Name'].str.split('_', expand=True)
-    #view_name_components2 = df2['View Name'].str.split('_', expand=True)
+
+  
+    # Directly extract and assign 'Clash ID' from 'View Name'
     df1['Clash ID'] = view_name_components1[0]
-    df1['Group'] = view_name_components1[2]
-    #df2['Clash ID'] = view_name_components2[0]
-    #df2['Level'] = view_name_components2[1]
-    df1['Merge ID'] = df1['Clash ID'] + '_' + df1['Group']
-    #df2['Merge ID'] = df2['Clash ID'] + '_' + df2['Level']
-
-
-    # Extract grid value for df2
+    df1['Merge ID'] = df1['Clash ID']
 
     return df1
 
@@ -107,7 +99,7 @@ def process_html_to_dfs(html_content):
 
 # Function to process HTML content
 def process_html_content(html_content):
-    #df1 = process_html_to_dfs(html_content)
+    df1 = process_html_to_dfs(html_content)
 
     soup = BeautifulSoup(html_content, 'html.parser')
     h2_tags = soup.find_all('h2')
@@ -133,7 +125,16 @@ def process_html_content(html_content):
     df['Assign To'] = view_name_components[7]
     df['Date Found'] = df['Date Found'].apply(adjust_convert_date_format)
     df['Issues Status'] = ""
-    
+    df['Merge ID']=df['Clash ID']
+# Merge reordered_df with df1 and df2 based on "Clash ID"
+    merged_df = pd.merge(df, df1, on="Merge ID", how="outer", suffixes=("", "_df1"))
+    #merged_df = pd.merge(merged_with_df1, df2, on="Merge ID", how="outer", suffixes=("", "_df2"))
+    # Rename the columns as per your request
+    column_rename_mapping = {
+        "View Name_df1": "View Name_Plan",
+        "Image_df1": "Image_Plan"
+    }
+    merged_df = merged_df.rename(columns=column_rename_mapping)    
 
 
     # Merge reordered_df with df1 and df2 based on "Clash ID"
@@ -143,7 +144,7 @@ def process_html_content(html_content):
     #column_rename_mapping = {"View Name_df1": "View Name_Plan","Image_df1": "Image_Plan"}
     #merged_df = merged_df.rename(columns=column_rename_mapping)
     #return merged_df
-    return df
+    return merged_df
     
 
 # Function to extract view details with levels from XML content
@@ -156,14 +157,17 @@ def extract_view_details_with_levels(root):
         
         if element.tag == 'view':
             view_name = element.attrib.get('name', None)
-            issues_type = folder_names[-2] if len(folder_names) >= 2 else None
-            issues_status = folder_names[-1] if len(folder_names) >= 1 else None
-            results.append((view_name, issues_status, issues_type))
+            # Assuming the last folder name before the view level accurately represents the Sub Zone
+            sub_zone = folder_names[-1] if folder_names else None
+            # Assuming Issues Type and Issues Status are captured from specific hierarchy levels
+            issues_type = folder_names[-3] if len(folder_names) >= 3 else None
+            issues_status = folder_names[-2] if len(folder_names) >= 2 else None
+            results.append((view_name, issues_type, issues_status, sub_zone))
         else:
             current_folder_name = element.attrib.get('name', parent_name)
             stack.extend([(child, folder_names + [current_folder_name], current_folder_name) for child in element])
     
-    return results
+    return results 
 
 def generate_pdf(df, project_name):
     class MyDocTemplate(BaseDocTemplate):
@@ -537,7 +541,112 @@ def generate_pdf3(df, project_name):
     pdf.build(story)
     return output.getvalue()
 
+def generate_pdf4(df, project_name):
+    class MyDocTemplate(BaseDocTemplate):
+        def __init__(self, filename, **kwargs):
+            BaseDocTemplate.__init__(self, filename, **kwargs)
+            page_width, page_height = landscape(A3)
+            frame_width = page_width
+            frame_height = 0.8 * page_height
+            frame_x = (page_width - frame_width) / 2
+            frame_y = (page_height - frame_height) / 2
+            frame = Frame(frame_x, frame_y, frame_width, frame_height, id='F1')
+            template = PageTemplate('normal', [frame], onPage=self.add_page_decorations)
+            self.addPageTemplates([template])
+        def add_page_decorations(self, canvas, doc):
+            with pil_image.open(logo_path) as img:
+                width, height = img.size
+            aspect = width / height
+            new_height = 0.25 * inch
+            new_width = new_height * aspect
+            canvas.drawImage(logo_path, 0.2*inch, doc.height + 1.5*inch, width=new_width, height=new_height)
+            canvas.setFont("Sarabun-Bold", 30)
+            canvas.drawCentredString(doc.width/2 + 0.5*inch, doc.height + 1.0*inch + 0.25*inch, project_name)
+            timestamp = time.strftime("%Y/%m/%d")
+            canvas.setFont("Sarabun-Bold", 10)
+            canvas.drawRightString(page_width - 0.2*inch, page_height - 0.2*inch, f"Generated on: {timestamp}")
 
+    logo_path = r"./Media/1-Aurecon-logo-colour-RGB-Positive.png"
+    output = BytesIO()
+    pdf = MyDocTemplate(output, pagesize=landscape(A3))
+    story = []
+    header_data = ["No.", "Image", "Plan","Details", "Note"]
+    styles = getSampleStyleSheet()
+ 
+    data = [header_data]
+    for idx, (index, row) in enumerate(df.iterrows(), 1):
+        img_data = row['Image']
+        if img_data != "Image not found":
+            if isinstance(img_data, BytesIO):  # If it's already a BytesIO object
+                image_stream = img_data
+            else:
+                image_stream = BytesIO(img_data.getvalue())
+            img_data.seek(0)  # Reset the file pointer to the start
+            image_path = ReportlabImage(image_stream, width=4*inch, height=4*inch)
+        else:
+            image_path = "Image Not Found"
+
+        if isinstance(row['Image_Plan'], BytesIO):
+            plan_image_stream = row['Image_Plan']
+            plan_image_path = ReportlabImage(plan_image_stream, width=4*inch, height=4*inch)
+        else:
+            plan_image_path = "Plan Image Not Found"
+
+
+
+        details_list = []
+        texts = [
+            f"<b>Clash ID:</b> <l>{row['Clash ID']}</l>",
+            f"<b>Date Found:</b> <l>{row['Date Found']}</l>",
+            f"<b>Group:</b> <l>{row['Group']}</l>",
+            f"<b>Sub Zone:</b> <l>{row['Sub Zone']}</l>",
+            f"<b>Level:</b> <l>{row['Level']}</l>",
+            f"<b>Description:</b> <l>{row['Description']}</l>",
+            f"<b>Discipline:</b> <l>{row['Discipline']}</l>",
+            f"<b>Issue Type:</b> <l>{row['Issues Type']}</l>",
+            f"<b>Issue Status:</b> <l>{row['Issues Status']}</l>",
+        ]
+        for text in texts:
+            bold_part, light_part = formatted_paragraph(text, styles)
+            details_list.append(bold_part)
+            details_list.append(light_part)
+        details_list.append(Spacer(1, 0.1*inch))
+
+       # new code for note column
+        if row['Notes']:
+            note_lines = row['Notes'].splitlines()
+            light_style = ParagraphStyle("LightStyle", parent=styles["Normal"], fontName="Sarabun")
+            note_paragraphs = [Paragraph(f"{note_lines[0]}", style=light_style)]
+            for line in note_lines[1:]:
+                note_paragraphs.append(Paragraph(f"{line}", style=light_style))
+        else:
+            note_paragraphs = [Spacer(1, 0.1*inch)]  # Use a Spacer instead of plain string
+
+        data.append([str(idx), image_path, plan_image_path, details_list, note_paragraphs])
+
+
+    page_width, page_height = A3 
+    col_widths = [(0.05 * page_width), (0.38 * page_width), (0.38* page_width),  (0.2* page_width), (0.35* page_width)]
+    table_style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.blue),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Sarabun-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 18),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), '#ffffff'),
+        ('GRID', (0, 0), (-1, -1), 1, '#2B2B2B'),
+        ('FONTNAME', (0, 1), (-1, -1), 'Sarabun'),
+        ('FONTSIZE', (1, 1), (1, -1), 16),
+        ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (0, 0), 'Sarabun-Bold'),
+        ('FONTSIZE', (0, 0), (0, -1), 16)
+    ])
+    table = Table(data, colWidths=col_widths, repeatRows=1, style=table_style)
+    story.append(table)
+    pdf.build(story)
+    return output.getvalue()
 
 
 st.title('Naviswork Clash Issues Report & Note (DMK)')
@@ -570,8 +679,7 @@ if html_file and xml_file:
     tree = ET.parse(xml_file)
     root = tree.getroot()
     view_details_with_levels = extract_view_details_with_levels(root)
-    xml_df = pd.DataFrame(view_details_with_levels, columns=['View Name', 'Issues Status', 'Issues Type'])
-
+    xml_df = pd.DataFrame(view_details_with_levels, columns=['View Name', 'Issues Type', 'Issues Status', 'Sub Zone'])
     xml_df['Clash ID'] = xml_df['View Name'].str.split('_').str[0]
 
     merged_df = pd.merge(html_df, xml_df, on='Clash ID', how='inner', suffixes=('_html', '_xml'))
@@ -580,11 +688,12 @@ if html_file and xml_file:
     merged_df = merged_df[~merged_df['View Name'].str.contains('__', na=False)]
     
     #merged_df['Merge ID'] = merged_df['Clash ID'] + '_' + merged_df['Group']
-    column_order = ["Clash ID", "View Name","Date Found","Issues Type", "Issues Status","Group","Assign To", "Level", "Location", "Discipline", "Description", "Image"]
+    column_order = ["Clash ID", "View Name","Date Found","Issues Type", "Issues Status","Sub Zone","Group","Assign To", "Level", "Location", "Discipline", "Description", "Image" ,"View Name_Plan", "Image_Plan"]
     #"View Name_Plan", "Image_Plan"
     merged_df = merged_df[column_order]
 
     merged_df = merged_df.drop_duplicates(subset='Clash ID', keep='first')
+    merged_df = merged_df.sort_values(by='Clash ID')
 
     if not merged_df.empty and "Issues Status" in merged_df.columns:
         available_statuses = merged_df["Issues Status"].unique().tolist()
@@ -601,8 +710,13 @@ if html_file and xml_file:
         filtered_df_display = filtered_df[filtered_df["Issues Status"].isin(selected_statuses)]
     else:
         filtered_df_display = filtered_df
+
+    # Sort filtered_df by 'Clash ID'
+    filtered_df_display = filtered_df.sort_values(by='Clash ID')
     
     st.table(filtered_df_display.head(3))
+    #st.table(html_df)
+    #st.table(xml_df)
 
 
     if st.button("Generate CSV"):
@@ -613,6 +727,7 @@ if html_file and xml_file:
             file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_CSV-Naviswork_{project_name}.csv",
             mime="text/csv"
         )
+    
     if st.button("Generate Report"):
         pdf_data = generate_pdf(filtered_df, project_name)
         st.download_button(
@@ -632,8 +747,8 @@ merged_df_display = merged_df.copy()
 if "Image" in merged_df.columns:
     merged_df["ImageName"]=merged_df["Image"]
     merged_df["Image"] = merged_df["Image"].apply(lambda x: image_dict.get(x, "Image not found"))
-    #merged_df["Image_Plan_Name"]=merged_df["Image_Plan"]
-    #merged_df["Image_Plan"] = merged_df["Image_Plan"].apply(lambda x: image_dict.get(x, "Image not found"))
+    merged_df["Image_Plan_Name"]=merged_df["Image_Plan"]
+    merged_df["Image_Plan"] = merged_df["Image_Plan"].apply(lambda x: image_dict.get(x, "Image not found"))
 
 
 
@@ -704,10 +819,11 @@ if selected_option == "Option 1: Display without merging":
             with col1:
                 st.write(f"<b>{row['View Name']}</b>", unsafe_allow_html=True)
                 st.image(row['Image'], use_column_width=True)
-                #if row['Image_Plan'] == "Image not found":
-                    #st.write("Plan Image not found.")
-                #else:
-                    #st.image(row['Image_Plan'], use_column_width=True)
+                if row['Image_Plan'] == "Image not found":
+                    st.write("Plan Image not found.")
+                else:
+                    st.image(row['Image_Plan'], use_column_width=True)
+
             with col2:
                 st.write(f"<b>Issue Type:</b> {row['Issues Type']}", unsafe_allow_html=True)
                 st.write(f"<b>Issue Status:</b> {row['Issues Status']}", unsafe_allow_html=True)
@@ -760,6 +876,8 @@ if selected_option == "Option 1: Display without merging":
             file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReport_{project_name}.pdf",
             mime="application/pdf"
         )
+
+
     if st.button("Generate ReportA4 With Note"):
         pdf_data = generate_pdf2(df_view, project_name)
         st.download_button(
@@ -769,6 +887,14 @@ if selected_option == "Option 1: Display without merging":
             mime="application/pdf"
         )
         
+    if st.button("Generate ReportA3 Plan With Note"):
+        pdf_data = generate_pdf4(df_view, project_name)
+        st.download_button(
+            label="Download PDF Report",
+            data=pdf_data,
+            file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReport_{project_name}.pdf",
+            mime="application/pdf"
+        )
 
 
 
@@ -923,4 +1049,11 @@ elif selected_option == "Option 2: Display with merging":
             file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReport_{project_name}.pdf",
             mime="application/pdf"
         )
-        
+    if st.button("Generate ReportA3 Plan With Note"):
+        pdf_data = generate_pdf4(df_view, project_name)
+        st.download_button(
+            label="Download PDF Report",
+            data=pdf_data,
+            file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReport_{project_name}.pdf",
+            mime="application/pdf"
+        )
