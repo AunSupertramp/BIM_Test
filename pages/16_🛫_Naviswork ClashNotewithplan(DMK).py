@@ -861,7 +861,13 @@ if selected_option == "Option 1: Display without merging":
 
 
     if st.button("Export CSV"):
-        csv_data = df_view.to_csv(encoding='utf-8-sig', index=False).encode('utf-8-sig')
+    # Drop 'Image' and 'Image_Plan' columns from the DataFrame copy
+        df_export = df_view.drop(columns=['Image', 'Image_Plan'])
+        
+        # Convert the modified DataFrame to CSV format
+        csv_data = df_export.to_csv(encoding='utf-8-sig', index=False).encode('utf-8-sig')
+        
+        # Create a download button for the CSV data
         st.download_button(
             label="Download CSV",
             data=BytesIO(csv_data),
@@ -1024,7 +1030,13 @@ elif selected_option == "Option 2: Display with merging":
 
 
     if st.button("Export CSV"):
-        csv_data = df_view.to_csv(encoding='utf-8-sig', index=False).encode('utf-8-sig')
+    # Drop 'Image' and 'Image_Plan' columns from the DataFrame copy
+        df_export = df_view.drop(columns=['Image', 'Image_Plan'])
+        
+        # Convert the modified DataFrame to CSV format
+        csv_data = df_export.to_csv(encoding='utf-8-sig', index=False).encode('utf-8-sig')
+        
+        # Create a download button for the CSV data
         st.download_button(
             label="Download CSV",
             data=BytesIO(csv_data),
