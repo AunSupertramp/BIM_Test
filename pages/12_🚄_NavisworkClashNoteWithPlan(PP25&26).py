@@ -672,6 +672,8 @@ if 'notes' not in st.session_state:
     st.session_state.notes = {}
 if 'usage' not in st.session_state:
     st.session_state.usage = {}
+if 'Assign' not in st.session_state:
+    st.session_state.assign = {}
 if 'due_dates' not in st.session_state:  # Initialize session state for due dates
     st.session_state.due_dates = {}
 
@@ -687,18 +689,19 @@ if selected_option == "Option 1: Display without merging":
             df['Notes'] = ""
         if 'Usage' not in df.columns:
             df['Usage'] = "Tracking"
-        if 'Assign To' not in df.columns:
-            df['Assign To'] = "None"
+        if 'Assign' not in df.columns:
+            df['Assign'] = "None"
 
         df["Notes"].fillna("", inplace=True)
         df["Usage"].fillna("Tracking", inplace=True)
+        df["Assign"].fillna("", inplace=True)
         #df["Date Found"] = pd.to_datetime(df["Date Found"]).dt.strftime("%m/%d/%Y")
         df["Date Found"] = df["Date Found"].apply(try_parsing_date)
         
 
         st.sidebar.header("Filter Options")
         filter_cols = ['Clash ID', 'View Name', 'Main Zone', 'Sub Zone', 'Level', 
-                    'Issues Type', 'Issues Status', 'Discipline', 'Assign To', 'Usage','Grid']
+                    'Issues Type', 'Issues Status', 'Discipline','Usage','Grid']
         selected_values = {}
         for col in filter_cols:
             unique_values = df[col].unique().tolist()
@@ -710,6 +713,8 @@ if selected_option == "Option 1: Display without merging":
                 df_view = df_view[df_view[col] == value]
 
         usage_options = ['Tracking', 'High Priority', 'Not Used','For Reporting']
+        assign_options = ['None','A49','AUR','INF','A49-INF','A49-AUR','INF-AUR','ALL']
+
         # Calculate the number of pages after filtering
 
 
@@ -759,9 +764,13 @@ if selected_option == "Option 1: Display without merging":
             df_view.at[idx, 'Notes'] = note
             df.at[idx, 'Notes'] = note
             usage_key = f"usage_{row['Clash ID']}_{idx}"
+            assign_key = f"assign_{row['Clash ID']}_{idx}"
             initial_usage_index = usage_options.index(st.session_state.usage.get(usage_key, row['Usage'])) if st.session_state.usage.get(usage_key, row['Usage']) in usage_options else 0
+            initial_assign_index = assign_options.index(st.session_state.assign.get(assign_key, row['Assign'])) if st.session_state.assign.get(assign_key, row['Assign']) in assign_options else 0
             usage = st.selectbox('Select usage', usage_options, index=initial_usage_index, key=usage_key)
+            assign = st.selectbox('Select assign', assign_options, index=initial_usage_index, key=assign_key)
             df.at[idx, 'Usage'] = usage
+            df.at[idx, 'Assign'] = assign
             #if usage == 'Not Used':
                 #df_view.at[idx, 'Issues Status'] = 'Resolved'
                 #df.at[idx, 'Issues Status'] = 'Resolved'
@@ -816,17 +825,18 @@ elif selected_option == "Option 2: Display with merging":
     if not merged_df.empty and uploaded_files and merge_option:
         df_report = pd.read_csv(report_file, encoding='utf-8-sig')
         
-        for col in ['Notes', 'Usage', 'Date Found']:
+        for col in ['Notes', 'Usage', 'Date Found','Assign']:
             if col not in df_report.columns:
                 df_report[col] = None
             if col not in merged_df.columns:
                 merged_df[col] = None
+
                 
         # Loop-based approach for merging
         for idx, row in merged_df.iterrows():
             match_row = df_report[df_report["Clash ID"] == row["Clash ID"]]
             if not match_row.empty:
-                for col in ['Notes', 'Usage', 'Due Date']:
+                for col in ['Notes', 'Usage', 'Due Date','Assign']:
                     if pd.notna(match_row[col].values[0]):
                         merged_df.at[idx, col] = match_row[col].values[0]
                  
@@ -838,17 +848,19 @@ elif selected_option == "Option 2: Display with merging":
             df['Notes'] = ""
         if 'Usage' not in df.columns:
             df['Usage'] = "Tracking"
-        if 'Assign To' not in df.columns:
-            df['Assign To'] = "None"
+        if 'Assign' not in df.columns:
+            df['Assign'] = "None"
+
         df["Notes"].fillna("", inplace=True)
         df["Usage"].fillna("Tracking", inplace=True)
+        df["Assign"].fillna("", inplace=True)
         #df["Date Found"] = pd.to_datetime(df["Date Found"]).dt.strftime("%m/%d/%Y")
         df["Date Found"] = df["Date Found"].apply(try_parsing_date)
 
 
         st.sidebar.header("Filter Options")
         filter_cols = ['Clash ID', 'View Name', 'Main Zone', 'Sub Zone', 'Level', 
-                    'Issues Type', 'Issues Status', 'Discipline', 'Assign To', 'Usage','Grid']
+                    'Issues Type', 'Issues Status', 'Discipline','Usage','Grid']
         selected_values = {}
         for col in filter_cols:
             unique_values = df[col].unique().tolist()
@@ -862,6 +874,7 @@ elif selected_option == "Option 2: Display with merging":
                 
 
         usage_options = ['Tracking', 'High Priority', 'Not Used','For Reporting']
+        assign_options = ['None','A49','AUR','INF','A49-INF','A49-AUR','INF-AUR','ALL']
         # Calculate the number of pages after filtering
 
 
@@ -911,9 +924,16 @@ elif selected_option == "Option 2: Display with merging":
             df_view.at[idx, 'Notes'] = note
             df.at[idx, 'Notes'] = note
             usage_key = f"usage_{row['Clash ID']}_{idx}"
+            assign_key = f"assign_{row['Clash ID']}_{idx}"
             initial_usage_index = usage_options.index(st.session_state.usage.get(usage_key, row['Usage'])) if st.session_state.usage.get(usage_key, row['Usage']) in usage_options else 0
+            current_assign = row['Assign'] if row['Assign'] in assign_options else "None"
+            assign_index = assign_options.index(current_assign) if current_assign in assign_options else 0
             usage = st.selectbox('Select usage', usage_options, index=initial_usage_index, key=usage_key)
+            assign = st.selectbox('Select assign', assign_options, index=assign_index, key=assign_key)
             df.at[idx, 'Usage'] = usage
+            df.at[idx, 'Assign'] = assign
+
+
             #if usage == 'Not Used':
                 #df_view.at[idx, 'Issues Status'] = 'Resolved'
                 #df.at[idx, 'Issues Status'] = 'Resolved'
