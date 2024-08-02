@@ -713,8 +713,7 @@ if selected_option == "Option 1: Display without merging":
                 df_view = df_view[df_view[col] == value]
 
         usage_options = ['Tracking', 'High Priority', 'Not Used','For Reporting']
-        assign_options = ['None','A49','INF','AUR(EM)','AUR(CE)','A49-INF','A49-AUR(EM)','A49-AUR(CE)','INF-AUR(EM)','INF-AUR(CE)','ALL']
-
+        assign_options = ['None','AR','CE','SE','EM','AR-CE','AR-SE','AR-EM','CE-SE','CE-EM','SE-EM','AR-CE-SE','AR-CE-EM','AR-SE-EM','CE-SE-EM','ALL']
         # Calculate the number of pages after filtering
 
 
@@ -874,7 +873,8 @@ elif selected_option == "Option 2: Display with merging":
                 
 
         usage_options = ['Tracking', 'High Priority', 'Not Used','For Reporting']
-        assign_options = ['None','A49','AUR','INF','A49-INF','A49-AUR','INF-AUR','ALL']
+        assign_options = ['None','AR','CE','SE','EM','AR-CE','AR-SE','AR-EM','CE-SE','CE-EM','SE-EM','AR-CE-SE','AR-CE-EM','AR-SE-EM','CE-SE-EM','ALL']
+
         # Calculate the number of pages after filtering
 
 
