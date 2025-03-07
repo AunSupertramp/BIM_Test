@@ -1069,3 +1069,11 @@ elif selected_option == "Option 2: Display with merging":
             file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReport_{project_name}.pdf",
             mime="application/pdf"
         )
+st.write("Debug: HTML DataFrame")
+st.dataframe(html_df.head())
+
+st.write("Debug: XML DataFrame")
+st.dataframe(xml_df.head())
+
+st.write("Debug: Merged DataFrame")
+st.dataframe(merged_df.head())
