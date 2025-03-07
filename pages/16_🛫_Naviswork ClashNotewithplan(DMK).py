@@ -99,52 +99,52 @@ def process_html_to_dfs(html_content):
 
 # Function to process HTML content
 def process_html_content(html_content):
-    df1 = process_html_to_dfs(html_content)
+    df1 = process_html_to_dfs(html_content)  # Get Plan Views
 
     soup = BeautifulSoup(html_content, 'html.parser')
     h2_tags = soup.find_all('h2')
     data = []
 
     for h2 in h2_tags:
+        view_name = h2.text.strip() if h2 else "Unknown View Name"
         img = h2.find_next('img')
-        img_src = img['src'].split('/')[-1] if img else None
-        data.append((h2.text.strip(), img_src))
+        img_src = img['src'].split('/')[-1] if img and img.has_attr('src') else "Image not found"
+
+        data.append((view_name, img_src))
 
     df = pd.DataFrame(data, columns=['View Name', 'Image'])
+
+    if df.empty:
+        st.error("No valid clash data found in HTML!")
+
+    # Fix missing values
+    df['View Name'] = df['View Name'].fillna("Unknown_View")
     df = df[df['View Name'].str.count('_') >= 3]
-    filtered_no_asterisk_df = df[~df['View Name'].str.contains('\*')]
-    df=filtered_no_asterisk_df
-    view_name_components = df['View Name'].str.split('_', expand=True)
-    df['Clash ID'] = view_name_components[0]
-    df['Date Found'] = view_name_components[1]
-    df['Group'] = view_name_components[2]
-    df['Level'] = view_name_components[3]
-    df['Location'] = view_name_components[4]
-    df['Discipline'] = view_name_components[5]
-    df['Description'] = view_name_components[6]
-    df['Assign To'] = view_name_components[7]
+
+    # Extract safely
+    try:
+        view_name_components = df['View Name'].str.split('_', expand=True)
+        df['Clash ID'] = view_name_components[0] if 0 in view_name_components else "Unknown"
+        df['Date Found'] = view_name_components[1] if 1 in view_name_components else "Unknown"
+        df['Group'] = view_name_components[2] if 2 in view_name_components else "Unknown"
+        df['Level'] = view_name_components[3] if 3 in view_name_components else "Unknown"
+        df['Location'] = view_name_components[4] if 4 in view_name_components else "Unknown"
+        df['Discipline'] = view_name_components[5] if 5 in view_name_components else "Unknown"
+        df['Description'] = view_name_components[6] if 6 in view_name_components else "Unknown"
+        df['Assign To'] = view_name_components[7] if 7 in view_name_components else "Unknown"
+    except Exception as e:
+        st.error(f"Error processing View Name structure: {e}")
+        return pd.DataFrame()
+
     df['Date Found'] = df['Date Found'].apply(adjust_convert_date_format)
     df['Issues Status'] = ""
-    df['Merge ID']=df['Clash ID']
-# Merge reordered_df with df1 and df2 based on "Clash ID"
+    df['Merge ID'] = df['Clash ID']
+
     merged_df = pd.merge(df, df1, on="Merge ID", how="outer", suffixes=("", "_df1"))
-    #merged_df = pd.merge(merged_with_df1, df2, on="Merge ID", how="outer", suffixes=("", "_df2"))
-    # Rename the columns as per your request
-    column_rename_mapping = {
-        "View Name_df1": "View Name_Plan",
-        "Image_df1": "Image_Plan"
-    }
-    merged_df = merged_df.rename(columns=column_rename_mapping)    
-
-
-    # Merge reordered_df with df1 and df2 based on "Clash ID"
-    #merged_df = pd.merge(df, df1, on="Merge ID", how="outer", suffixes=("", "_df1"))
-    #merged_df = pd.merge(merged_with_df1, df2, on="Merge ID", how="outer", suffixes=("", "_df2"))
-    # Rename the columns as per your request
-    #column_rename_mapping = {"View Name_df1": "View Name_Plan","Image_df1": "Image_Plan"}
-    #merged_df = merged_df.rename(columns=column_rename_mapping)
-    #return merged_df
+    column_rename_mapping = {"View Name_df1": "View Name_Plan", "Image_df1": "Image_Plan"}
+    merged_df = merged_df.rename(columns=column_rename_mapping)
     return merged_df
+
     
 
 # Function to extract view details with levels from XML content
