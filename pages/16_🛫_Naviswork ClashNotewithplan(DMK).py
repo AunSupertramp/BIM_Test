@@ -679,8 +679,8 @@ if html_file and xml_file:
     tree = ET.parse(xml_file)
     root = tree.getroot()
     view_details_with_levels = extract_view_details_with_levels(root)
-    xml_df = pd.DataFrame(view_details_with_levels, columns=['View Name', 'Issues Type', 'Issues Status', 'Sub Zone'])
-    xml_df['Clash ID'] = xml_df['View Name'].str.split('_').str[0]
+    xml_df['Clash ID'] = xml_df['View Name'].str.extract(r'(\d{6,})')  # Extract Clash ID from View Name
+    html_df['Clash ID'] = html_df['Clash ID'].astype(str)  # Ensure correct data type
 
     merged_df = pd.merge(html_df, xml_df, on='Clash ID', how='inner', suffixes=('_html', '_xml'))
     #merged_df = merged_df.drop(columns=['Clash ID_xml'])
