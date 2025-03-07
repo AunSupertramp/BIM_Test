@@ -88,7 +88,12 @@ def process_html_to_dfs(html_content):
 
   
     # Directly extract and assign 'Clash ID' from 'View Name'
-    df1['Clash ID'] = view_name_components1[0]
+    if view_name_components1.shape[1] > 0:  # Check if column 0 exists
+        df1['Clash ID'] = view_name_components1[0]
+    else:
+        st.error(f"Error: 'View Name' did not split correctly. Found only {view_name_components1.shape[1]} parts.")
+        st.write("Problematic View Names:", df1['View Name'].unique())
+        df1['Clash ID'] = "Unknown"
     df1['Merge ID'] = df1['Clash ID']
 
     return df1
@@ -1069,11 +1074,3 @@ elif selected_option == "Option 2: Display with merging":
             file_name=f"{datetime.datetime.now().strftime('%Y%m%d')}_PDF-ClashNoteReport_{project_name}.pdf",
             mime="application/pdf"
         )
-    st.write("Debug: HTML DataFrame")
-    st.dataframe(html_df.head())
-
-    st.write("Debug: XML DataFrame")
-    st.dataframe(xml_df.head())
-
-    st.write("Debug: Merged DataFrame")
-    st.dataframe(merged_df.head())
