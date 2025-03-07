@@ -673,7 +673,7 @@ for uploaded_file in uploaded_files:
 
 
 if html_file and xml_file:
-    html_content = html_file.read().decode('utf-8-sig')
+    html_content = html_file.read().decode(errors="ignore")
     html_df = process_html_content(html_content)
 
     tree = ET.parse(xml_file)
