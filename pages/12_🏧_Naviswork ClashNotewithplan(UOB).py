@@ -531,7 +531,7 @@ def generate_pdf3(df, project_name):
 
 
 
-st.title('Naviswork Clash Issues Report & Note (UOB)')
+st.title('Naviswork Clash Issues Report & Note (UOB) V0.01')
 project_name = st.text_input("Enter Project Name:")
 main_zone = st.text_input("Main Zone", value="")
 selected_option = st.radio("Select a process:", ["Option 1: Display without merging", "Option 2: Display with merging"])
