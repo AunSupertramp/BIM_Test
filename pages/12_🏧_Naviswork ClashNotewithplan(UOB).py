@@ -67,10 +67,10 @@ def process_html_to_dfs(html_content):
     
     # Filter the rows based on the view name patterns
 
-    df1 = full_df[full_df['View Name'].str.strip().str.contains("_View (Plan)")]
-    df2 = full_df[full_df['View Name'].str.strip().str.contains("_View (Section)")]
+    df1 = full_df[full_df['View Name'].str.strip().str.contains("_View \(Plan\)")]
+    df2 = full_df[full_df['View Name'].str.strip().str.contains("_View \(Section\)")]
 
-    df1 = df1[df1['View Name'].str.count('_') >1]
+    df1 = df1[df1['View Name'].str.count('_') >= 1]
 
     if df1.empty:
         return pd.DataFrame(columns=["Merge ID"])
@@ -128,13 +128,7 @@ def process_html_content(html_content):
         "View Name_df1": "View Name_Plan",
         "Image_df1": "Image_Plan"
     }
-    column_order = [
-    "Merge ID", "Clash ID", "View Name", "Date Found", "Main Zone", "Sub Zone", "Level", 
-    "Issues Type", "Issues Status", "Description", "Discipline", "Assign To", 
-    "Image", "View Name_Plan", "Image_Plan"
-    ]
-
-    merged_df = merged_df.reindex(columns=column_order)
+    merged_df = merged_df.rename(columns=column_rename_mapping)
 
     return merged_df
 
