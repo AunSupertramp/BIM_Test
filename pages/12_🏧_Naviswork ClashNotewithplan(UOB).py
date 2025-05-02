@@ -72,8 +72,7 @@ def process_html_to_dfs(html_content):
 
     df1 = df1[df1['View Name'].str.count('_') >= 1]
 
-    if df1.empty:
-        return pd.DataFrame(columns=["Merge ID"])
+
 
     view_name_components1 = df1['View Name'].str.split('_', expand=True)
     #view_name_components2 = df2['View Name'].str.split('_', expand=True)
