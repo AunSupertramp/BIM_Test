@@ -120,7 +120,7 @@ def process_html_content(html_content):
 
 
     # Merge reordered_df with df1 and df2 based on "Clash ID"
-    merged_df = pd.merge(df, df1, on="Merge ID", how="outer", suffixes=("", "_df1"))
+    merged_df = pd.merge(df, df1, on="Clash ID", how="outer", suffixes=("", "_df1"))
     #merged_df = pd.merge(merged_with_df1, df2, on="Merge ID", how="outer", suffixes=("", "_df2"))
     # Rename the columns as per your request
     column_rename_mapping = {
