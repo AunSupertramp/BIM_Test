@@ -67,10 +67,10 @@ def process_html_to_dfs(html_content):
     
     # Filter the rows based on the view name patterns
 
-    df1 = full_df[full_df['View Name'].str.contains("View")]
-    df2 = full_df[full_df['View Name'].str.contains("View")]
+    df1 = full_df[full_df['View Name'].str.contains("_View \(Plan\)")]
+    df2 = full_df[full_df['View Name'].str.contains("_View \(Section\)")]
 
-    df1 = df1[df1['View Name'].str.count('_') > 1]
+    df1 = df1[df1['View Name'].str.count('_') >= 1]
 
 
 
