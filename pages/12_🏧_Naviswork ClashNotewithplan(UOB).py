@@ -72,16 +72,17 @@ def process_html_to_dfs(html_content):
 
     df1 = df1[df1['View Name'].str.count('_') >= 1]
 
-
-
     view_name_components1 = df1['View Name'].str.split('_', expand=True)
-    #view_name_components2 = df2['View Name'].str.split('_', expand=True)
-    df1['Clash ID'] = view_name_components1[0]
-    df1['Level'] = view_name_components1[1]
-    #df2['Clash ID'] = view_name_components2[0]
-    #df2['Level'] = view_name_components2[1]
-    df1['Merge ID'] = df1['Clash ID'] + '_' + df1['Level']
-    #df2['Merge ID'] = df2['Clash ID'] + '_' + df2['Level']
+
+
+    if view_name_components1.shape[1] >= 2:
+        df1['Clash ID'] = view_name_components1[0]
+        df1['Level'] = view_name_components1[1]
+        df1['Merge ID'] = df1['Clash ID'] + '_' + df1['Level']
+    else:
+        df1['Clash ID'] = None
+        df1['Level'] = None
+        df1['Merge ID'] = None
 
 
     # Extract grid value for df2
