@@ -128,6 +128,12 @@ def process_html_content(html_content):
         "View Name_df1": "View Name_Plan",
         "Image_df1": "Image_Plan"
     }
+    column_order = [
+    "Merge ID", "Clash ID", "View Name", "Date Found", "Main Zone", "Sub Zone", "Level", 
+    "Issues Type", "Issues Status", "Description", "Discipline", "Assign To", 
+    "Image", "View Name_Plan", "Image_Plan"
+    ]
+
     merged_df = merged_df.reindex(columns=column_order)
 
     return merged_df
