@@ -77,20 +77,7 @@ with content1:
 
         """)
 
-        st.markdown("""
-
-## contact
-
-:blue_book:[Facebook](https://www.facebook.com/siwawut.pattanasri/)
-
-
-:green_book: lineID : atomsiwawut
-
-:e-mail: atomsiwawut@gmail.com
-
-:telephone_receiver: 0828952663
-
-""")
+        
         
         imageurl2 = "https://raw.githubusercontent.com/atomsiwawut1/FloodPrediction/main/Media/City.png"
         #st.image(".\Media\City.png",caption="https://www.facebook.com/siwawut.pattanasri/",width=600)
