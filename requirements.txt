@@ -2,7 +2,7 @@ numpy==1.23.2
 pandas==2.1.0
 scipy
 matplotlib
-streamlit
+streamlit==1.46.0
 pandas-profiling
 openpyxl
 xlrd
